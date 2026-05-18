@@ -1,5 +1,4 @@
 node_modules/
-dist/
 .env
 api/.env
 api/LOCAL_CREDENTIALS.md

@@ -1,0 +1,1 @@
+import{n as e}from"./index-nuXsITR6.js";function t(t){return e.get(`/stores`,{params:t})}function n(){return e.get(`/stores/all`)}function r(t){return e.post(`/stores`,t)}function i(t,n){return e.put(`/stores/${t}`,n)}function a(t){return e.delete(`/stores/${t}`)}export{i as a,t as i,a as n,n as r,r as t};
