@@ -1,0 +1,89 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/login/LoginView.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/',
+    component: () => import('@/layouts/AdminLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      { path: '', redirect: '/stores' },
+      {
+        path: 'stores',
+        name: 'Stores',
+        component: () => import('@/views/stores/StoreListView.vue'),
+        meta: { title: '门店管理' },
+      },
+      {
+        path: 'categories',
+        name: 'Categories',
+        component: () => import('@/views/categories/CategoryListView.vue'),
+        meta: { title: '系列管理' },
+      },
+      {
+        path: 'products',
+        name: 'Products',
+        component: () => import('@/views/products/ProductListView.vue'),
+        meta: { title: '商品管理' },
+      },
+      {
+        path: 'products/:id',
+        name: 'ProductDetail',
+        component: () => import('@/views/products/ProductDetailView.vue'),
+        meta: { title: '商品详情' },
+      },
+      {
+        path: 'orders',
+        name: 'Orders',
+        component: () => import('@/views/orders/OrderListView.vue'),
+        meta: { title: '订单管理' },
+      },
+      {
+        path: 'orders/:id',
+        name: 'OrderDetail',
+        component: () => import('@/views/orders/OrderDetailView.vue'),
+        meta: { title: '订单详情' },
+      },
+    ],
+  },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+})
+
+router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+  const requiresAuth = to.meta.requiresAuth !== false
+
+  if (!requiresAuth) {
+    if (auth.isLoggedIn && to.path === '/login') {
+      return '/'
+    }
+    return true
+  }
+
+  if (!auth.isLoggedIn) {
+    return { path: '/login', query: { redirect: to.fullPath } }
+  }
+
+  if (!auth.admin) {
+    try {
+      await auth.fetchMe()
+    } catch {
+      auth.clearSession()
+      return { path: '/login', query: { redirect: to.fullPath } }
+    }
+  }
+
+  return true
+})
+
+export default router

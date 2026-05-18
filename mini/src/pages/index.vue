@@ -1,0 +1,195 @@
+<template>
+  <view class="page">
+    <view class="search-bar">
+      <input
+        v-model="keyword"
+        class="search-input"
+        placeholder="搜索想要的商品"
+        confirm-type="search"
+        @confirm="loadProducts"
+      />
+    </view>
+    <view class="main">
+      <scroll-view scroll-y class="sidebar">
+        <view
+          v-for="cat in categories"
+          :key="cat.id"
+          class="cat-item"
+          :class="{ active: cat.id === activeCategoryId }"
+          @click="selectCategory(cat.id)"
+        >
+          {{ cat.name }}
+        </view>
+      </scroll-view>
+      <scroll-view scroll-y class="product-panel" @scrolltolower="loadMore">
+        <view class="product-grid">
+          <view
+            v-for="p in products"
+            :key="p.id"
+            class="product-card"
+            @click="goDetail(p.id)"
+          >
+            <image :src="p.coverImage || '/static/logo.svg'" class="cover" mode="aspectFill" />
+            <text class="p-name">{{ p.code }}{{ p.name }}</text>
+          </view>
+        </view>
+        <view v-if="!loading && products.length === 0" class="empty">暂无商品</view>
+        <view v-if="loading" class="loading">加载中...</view>
+      </scroll-view>
+    </view>
+    <view class="bottom-tabs">
+      <text class="bottom-tab active">全部商品</text>
+      <text class="bottom-tab muted">主题</text>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { getCategories, getProducts } from '@/api/catalog'
+
+const categories = ref([])
+const products = ref([])
+const activeCategoryId = ref(null)
+const keyword = ref('')
+const loading = ref(false)
+const page = ref(1)
+const total = ref(0)
+
+async function loadCategories() {
+  const res = await getCategories()
+  categories.value = res.data
+  if (categories.value.length && !activeCategoryId.value) {
+    activeCategoryId.value = categories.value[0].id
+    loadProducts(true)
+  }
+}
+
+async function loadProducts(reset = false) {
+  if (reset) page.value = 1
+  loading.value = true
+  try {
+    const res = await getProducts({
+      categoryId: activeCategoryId.value,
+      keyword: keyword.value,
+      page: page.value,
+      pageSize: 20,
+    })
+    if (reset) {
+      products.value = res.data.list
+    } else {
+      products.value = [...products.value, ...res.data.list]
+    }
+    total.value = res.data.total
+  } finally {
+    loading.value = false
+  }
+}
+
+function selectCategory(id) {
+  activeCategoryId.value = id
+  loadProducts(true)
+}
+
+function loadMore() {
+  if (products.value.length >= total.value || loading.value) return
+  page.value += 1
+  loadProducts()
+}
+
+function goDetail(id) {
+  uni.navigateTo({ url: `/pages/product/detail?id=${id}` })
+}
+
+onMounted(loadCategories)
+</script>
+
+<style scoped>
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.search-bar {
+  padding: 16rpx 24rpx;
+  background: #fff;
+}
+.search-input {
+  background: #f5f5f5;
+  border-radius: 32rpx;
+  padding: 16rpx 24rpx;
+  font-size: 28rpx;
+}
+.main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+.sidebar {
+  width: 200rpx;
+  background: #fff;
+  height: 100%;
+}
+.cat-item {
+  padding: 28rpx 16rpx;
+  font-size: 26rpx;
+  color: #666;
+  border-left: 6rpx solid transparent;
+}
+.cat-item.active {
+  color: #7b61ff;
+  font-weight: 600;
+  background: #f3f0ff;
+  border-left-color: #7b61ff;
+}
+.product-panel {
+  flex: 1;
+  height: 100%;
+  padding: 16rpx;
+}
+.product-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.product-card {
+  width: calc(50% - 8rpx);
+  background: #fff;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+.cover {
+  width: 100%;
+  height: 240rpx;
+  background: #eee;
+}
+.p-name {
+  display: block;
+  padding: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.4;
+}
+.empty,
+.loading {
+  text-align: center;
+  color: #999;
+  padding: 40rpx;
+}
+.bottom-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 48rpx;
+  padding: 16rpx;
+  background: #fff;
+  border-top: 1rpx solid #eee;
+}
+.bottom-tab {
+  font-size: 28rpx;
+  color: #7b61ff;
+  font-weight: 600;
+}
+.bottom-tab.muted {
+  color: #999;
+  font-weight: 400;
+}
+</style>

@@ -1,0 +1,90 @@
+{
+  "pages": [
+  {
+    "path": "pages/index",
+    "style": {
+      "navigationBarTitleText": "浏览商品"
+    }
+  },
+  {
+    "path": "pages/product/detail",
+    "style": {
+      "navigationBarTitleText": "商品详情"
+    }
+  },
+  {
+    "path": "pages/cart/index",
+    "style": {
+      "navigationBarTitleText": "购物车"
+    }
+  },
+  {
+    "path": "pages/mine/index",
+    "style": {
+      "navigationBarTitleText": "我的"
+    }
+  },
+  {
+    "path": "pages/order/list",
+    "style": {
+      "navigationBarTitleText": "我的订单"
+    }
+  },
+  {
+    "path": "pages/order/detail",
+    "style": {
+      "navigationBarTitleText": "订单详情"
+    }
+  },
+  {
+    "path": "pages/address/list",
+    "style": {
+      "navigationBarTitleText": "收货地址"
+    }
+  },
+  {
+    "path": "pages/address/edit",
+    "style": {
+      "navigationBarTitleText": "编辑地址"
+    }
+  },
+  {
+    "path": "pages/favorite/list",
+    "style": {
+      "navigationBarTitleText": "我的收藏"
+    }
+  }
+],
+  "globalStyle": {
+    "navigationBarBackgroundColor": "#7B61FF",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "布行",
+    "backgroundColor": "#f6f5fa"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#7B61FF",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index",
+        "text": "商品",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/cart/index",
+        "text": "购物车",
+        "iconPath": "static/tab-cart.png",
+        "selectedIconPath": "static/tab-cart-active.png"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的",
+        "iconPath": "static/tab-mine.png",
+        "selectedIconPath": "static/tab-mine-active.png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+api/.env
+api/LOCAL_CREDENTIALS.md
+api/uploads/*
+!api/uploads/.gitkeep
+.DS_Store
+*.log

@@ -1,0 +1,21 @@
+page {
+  background-color: #f6f5fa;
+  color: #2d2a3e;
+  font-size: 28rpx;
+}
+
+.btn-primary {
+  background: #7b61ff;
+  color: #fff;
+  border-radius: 8rpx;
+}
+
+.btn-sample {
+  background: #e53935;
+  color: #fff;
+}
+
+.btn-bulk {
+  background: #43a047;
+  color: #fff;
+}

@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id             Int       @id @default(autoincrement())
+  username       String    @unique @db.VarChar(64)
+  passwordHash   String    @map("password_hash") @db.VarChar(255)
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  lockedUntil    DateTime? @map("locked_until")
+  lastLoginAt    DateTime? @map("last_login_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  orderLogs OrderLog[]
+
+  @@map("admins")
+}
+
+model LoginAttempt {
+  id        Int      @id @default(autoincrement())
+  username  String   @db.VarChar(64)
+  ip        String   @db.VarChar(64)
+  success   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([username, createdAt])
+  @@index([ip, createdAt])
+  @@map("login_attempts")
+}
+
+model Store {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(128)
+  address   String?  @db.VarChar(255)
+  phone     String?  @db.VarChar(32)
+  contact   String?  @db.VarChar(64)
+  enabled   Boolean  @default(true)
+  sort      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  productStores ProductStore[]
+  orders        Order[]
+
+  @@map("stores")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  parentId  Int?     @map("parent_id")
+  name      String   @db.VarChar(128)
+  sort      Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id         Int      @id @default(autoincrement())
+  categoryId Int      @map("category_id")
+  code       String   @db.VarChar(64)
+  name       String   @db.VarChar(128)
+  coverImage String?  @map("cover_image") @db.VarChar(512)
+  enabled    Boolean  @default(true)
+  sort       Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  category      Category            @relation(fields: [categoryId], references: [id])
+  skus          ProductSku[]
+  productStores ProductStore[]
+  detailImages  ProductDetailImage[]
+  params        ProductParam[]
+  favorites     Favorite[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductDetailImage {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  url       String   @db.VarChar(512)
+  sort      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_detail_images")
+}
+
+model ProductParam {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  name      String   @db.VarChar(64)
+  value     String   @default("") @db.VarChar(255)
+  sort      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_params")
+}
+
+model ProductSku {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  specName  String   @map("spec_name") @db.VarChar(128)
+  price     Decimal  @db.Decimal(10, 2)
+  sort      Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  @@index([productId])
+  @@map("product_skus")
+}
+
+model ProductStore {
+  productId Int @map("product_id")
+  storeId   Int @map("store_id")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([productId, storeId])
+  @@map("product_stores")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  openid    String   @unique @db.VarChar(64)
+  unionid   String?  @db.VarChar(64)
+  nickname  String?  @db.VarChar(64)
+  avatar    String?  @db.VarChar(512)
+  phone     String?  @db.VarChar(32)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  addresses UserAddress[]
+  favorites Favorite[]
+  cartItems CartItem[]
+  orders    Order[]
+
+  @@map("users")
+}
+
+model UserAddress {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String   @db.VarChar(64)
+  phone     String   @db.VarChar(32)
+  province  String   @db.VarChar(64)
+  city      String   @db.VarChar(64)
+  district  String   @db.VarChar(64)
+  detail    String   @db.VarChar(255)
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_addresses")
+}
+
+model Favorite {
+  userId    Int @map("user_id")
+  productId Int @map("product_id")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+  @@map("favorites")
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  skuId     Int      @map("sku_id")
+  quantity  Decimal  @db.Decimal(10, 2)
+  orderType String   @map("order_type") @db.VarChar(16)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sku  ProductSku @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skuId, orderType])
+  @@index([userId])
+  @@map("cart_items")
+}
+
+model Order {
+  id              Int      @id @default(autoincrement())
+  orderNo         String   @unique @map("order_no") @db.VarChar(32)
+  orderType       String   @map("order_type") @db.VarChar(16)
+  storeId         Int      @map("store_id")
+  userId          Int?     @map("user_id")
+  status          String   @db.VarChar(32)
+  payStatus       String   @map("pay_status") @db.VarChar(32)
+  totalAmount     Decimal  @map("total_amount") @db.Decimal(12, 2)
+  deliveryType    String?  @map("delivery_type") @db.VarChar(16)
+  addressSnapshot String?  @map("address_snapshot") @db.Text
+  wxTransactionId String?  @map("wx_transaction_id") @db.VarChar(64)
+  remark          String?  @db.Text
+  customerName    String?  @map("customer_name") @db.VarChar(64)
+  customerPhone   String?  @map("customer_phone") @db.VarChar(32)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  store Store       @relation(fields: [storeId], references: [id])
+  user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items OrderItem[]
+  logs  OrderLog[]
+
+  @@index([orderType, status])
+  @@index([storeId])
+  @@index([userId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int     @map("order_id")
+  skuId     Int?    @map("sku_id")
+  specName  String  @map("spec_name") @db.VarChar(128)
+  quantity  Decimal @db.Decimal(10, 2)
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+
+  order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sku   ProductSku? @relation(fields: [skuId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderLog {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  adminId   Int?     @map("admin_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_logs")
+}
