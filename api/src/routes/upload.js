@@ -4,6 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 const crypto = require('crypto');
 const { success, fail } = require('../utils/response');
+const { toAbsoluteUrl } = require('../utils/url');
 
 const router = express.Router();
 
@@ -42,8 +43,8 @@ router.post('/', upload.single('file'), (req, res) => {
   if (!req.file) {
     return fail(res, '请选择要上传的文件');
   }
-  const url = `/uploads/${req.file.filename}`;
-  return success(res, { url });
+  const relativePath = `/uploads/${req.file.filename}`;
+  return success(res, { url: toAbsoluteUrl(relativePath), path: relativePath });
 });
 
 module.exports = router;

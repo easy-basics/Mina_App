@@ -7,16 +7,24 @@ const {
   DEFAULT_PRODUCT_PARAMS,
 } = require('../services/productExtrasService');
 
+const { toAbsoluteUrl } = require('../utils/url');
+
 const router = express.Router();
+
+function serializeDetailImage(img) {
+  return { ...img, url: toAbsoluteUrl(img.url) };
+}
 
 function serializeProduct(product) {
   return {
     ...product,
+    coverImage: toAbsoluteUrl(product.coverImage),
     price: product.price !== undefined ? Number(product.price) : undefined,
     skus: product.skus?.map((sku) => ({
       ...sku,
       price: Number(sku.price),
     })),
+    detailImages: product.detailImages?.map(serializeDetailImage),
   };
 }
 
@@ -53,7 +61,12 @@ router.get('/', async (req, res, next) => {
       prisma.product.count({ where }),
     ]);
 
-    return success(res, { list, total, page, pageSize });
+    return success(res, {
+      list: list.map(serializeProduct),
+      total,
+      page,
+      pageSize,
+    });
   } catch (err) {
     return next(err);
   }
@@ -111,7 +124,7 @@ router.post('/', async (req, res, next) => {
       },
     });
     await initDefaultParams(product.id);
-    return success(res, product, '创建成功');
+    return success(res, serializeProduct(product), '创建成功');
   } catch (err) {
     return next(err);
   }
@@ -135,7 +148,7 @@ router.put('/:id', async (req, res, next) => {
         sort: sort !== undefined ? Number(sort) : undefined,
       },
     });
-    return success(res, product, '更新成功');
+    return success(res, serializeProduct(product), '更新成功');
   } catch (err) {
     if (err.code === 'P2025') {
       return fail(res, '商品不存在', 404, 404);
@@ -267,7 +280,7 @@ router.get('/:id/detail-images', async (req, res, next) => {
       where: { productId },
       orderBy: [{ sort: 'asc' }, { id: 'asc' }],
     });
-    return success(res, images);
+    return success(res, images.map(serializeDetailImage));
   } catch (err) {
     if (err.status) return fail(res, err.message, err.status, err.status);
     return next(err);
@@ -293,7 +306,7 @@ router.post('/:id/detail-images', async (req, res, next) => {
         sort: sort !== undefined ? Number(sort) : (maxSort._max.sort ?? -1) + 1,
       },
     });
-    return success(res, image, '添加成功');
+    return success(res, serializeDetailImage(image), '添加成功');
   } catch (err) {
     if (err.status) return fail(res, err.message, err.status, err.status);
     return next(err);
@@ -320,7 +333,7 @@ router.put('/:id/detail-images/sort', async (req, res, next) => {
       where: { productId },
       orderBy: [{ sort: 'asc' }, { id: 'asc' }],
     });
-    return success(res, images, '排序已更新');
+    return success(res, images.map(serializeDetailImage), '排序已更新');
   } catch (err) {
     if (err.status) return fail(res, err.message, err.status, err.status);
     return next(err);
