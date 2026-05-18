@@ -51,7 +51,12 @@
         <p class="section-tip">上传多张详情图，将展示在小程序「商品详情」Tab（支持拖拽排序）</p>
         <div class="detail-images">
           <div v-for="(img, index) in detailImages" :key="img.id" class="image-item">
-            <el-image :src="img.url" fit="cover" class="detail-img" :preview-src-list="detailImages.map((i) => i.url)" />
+            <el-image
+              :src="resolveMediaUrl(img.url)"
+              fit="cover"
+              class="detail-img"
+              :preview-src-list="detailImages.map((i) => resolveMediaUrl(i.url))"
+            />
             <div class="image-actions">
               <el-button size="small" :disabled="index === 0" @click="moveImage(index, -1)">左移</el-button>
               <el-button size="small" :disabled="index === detailImages.length - 1" @click="moveImage(index, 1)">
@@ -206,6 +211,7 @@ import {
 import { getAllCategories } from '@/api/categories'
 import { getAllStores } from '@/api/stores'
 import { uploadFile } from '@/api/upload'
+import { resolveMediaUrl, toStoredMediaPath } from '@/utils/media'
 
 const route = useRoute()
 const productId = computed(() => Number(route.params.id))
@@ -319,7 +325,7 @@ async function handleUploadDetail({ file }) {
   imageUploading.value = true
   try {
     const res = await uploadFile(file)
-    await addDetailImage(productId.value, { url: res.data.url })
+    await addDetailImage(productId.value, { url: toStoredMediaPath(res.data.url) })
     ElMessage.success('上传成功')
     loadData()
   } finally {

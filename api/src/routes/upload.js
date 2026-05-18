@@ -4,8 +4,6 @@ const fs = require('fs');
 const multer = require('multer');
 const crypto = require('crypto');
 const { success, fail } = require('../utils/response');
-const { toAbsoluteUrl } = require('../utils/url');
-
 const router = express.Router();
 
 const uploadsDir = path.join(__dirname, '../../uploads');
@@ -14,7 +12,6 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-const MAX_SIZE = 2 * 1024 * 1024;
 
 const storage = multer.diskStorage({
   destination(req, file, cb) {
@@ -30,7 +27,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: MAX_SIZE },
   fileFilter(req, file, cb) {
     if (!ALLOWED_MIME.has(file.mimetype)) {
       return cb(new Error('仅支持 jpg、png、webp、gif 图片'));
@@ -43,8 +39,8 @@ router.post('/', upload.single('file'), (req, res) => {
   if (!req.file) {
     return fail(res, '请选择要上传的文件');
   }
-  const relativePath = `/uploads/${req.file.filename}`;
-  return success(res, { url: toAbsoluteUrl(relativePath), path: relativePath });
+  const url = `/uploads/${req.file.filename}`;
+  return success(res, { url });
 });
 
 module.exports = router;

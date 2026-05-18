@@ -27,7 +27,7 @@
     <el-table v-loading="loading" :data="list" border stripe>
       <el-table-column label="封面" width="80">
         <template #default="{ row }">
-          <img v-if="row.coverImage" :src="row.coverImage" class="cover-thumb" alt="" />
+          <img v-if="row.coverImage" :src="resolveMediaUrl(row.coverImage)" class="cover-thumb" alt="" />
           <span v-else class="no-cover">无图</span>
         </template>
       </el-table-column>
@@ -85,7 +85,7 @@
             :http-request="handleUpload"
             accept="image/*"
           >
-            <img v-if="form.coverImage" :src="form.coverImage" class="upload-preview" alt="" />
+            <img v-if="form.coverImage" :src="resolveMediaUrl(form.coverImage)" class="upload-preview" alt="" />
             <el-button v-else type="primary" plain>上传图片</el-button>
           </el-upload>
         </el-form-item>
@@ -110,6 +110,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getProducts, createProduct, updateProduct, deleteProduct } from '@/api/products'
 import { getAllCategories } from '@/api/categories'
 import { uploadFile } from '@/api/upload'
+import { resolveMediaUrl, toStoredMediaPath } from '@/utils/media'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -170,7 +171,7 @@ function openDialog(row) {
 
 async function handleUpload({ file }) {
   const res = await uploadFile(file)
-  form.coverImage = res.data.url
+  form.coverImage = toStoredMediaPath(res.data.url)
   ElMessage.success('上传成功')
 }
 
