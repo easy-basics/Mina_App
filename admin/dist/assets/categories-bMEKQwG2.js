@@ -1,0 +1,1 @@
+import{n as e}from"./index-CbEuk0Ih.js";function t(t){return e.get(`/categories`,{params:t})}function n(){return e.get(`/categories/all`)}function r(t){return e.post(`/categories`,t)}function i(t,n){return e.put(`/categories/${t}`,n)}function a(t){return e.delete(`/categories/${t}`)}export{i as a,t as i,a as n,n as r,r as t};
