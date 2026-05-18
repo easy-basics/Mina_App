@@ -77,11 +77,15 @@ API 默认：`http://localhost:3000`
 
 ```bash
 cd admin
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-后台默认：`http://localhost:5173`
+后台默认：`http://localhost:5173`  
+API 地址由环境变量控制（见 `admin/.env.development` / `admin/.env.production`）：
+
+- 开发：`http://localhost:3000/api`
+- 生产构建：`https://api.mina.bigdeng.com/api`
 
 ### 4. 启动小程序（可选）
 
@@ -111,7 +115,7 @@ seed 后可用（以 `api/.env` 为准）：
 ## 生产构建
 
 ```bash
-cd admin && npm run build
+cd admin && pnpm build
 cd api && npm start
 ```
 

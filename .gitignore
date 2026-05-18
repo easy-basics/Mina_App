@@ -1,5 +1,7 @@
 node_modules/
 .env
+admin/.env.local
+admin/.env.*.local
 api/.env
 api/LOCAL_CREDENTIALS.md
 api/uploads/*
