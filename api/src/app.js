@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const authMiddleware = require('./middleware/auth');
 const errorHandler = require('./middleware/errorHandler');
+const { getCorsOptions } = require('./utils/cors');
 
 const authRoutes = require('./routes/auth');
 const storeRoutes = require('./routes/stores');
@@ -17,13 +18,7 @@ const app = express();
 
 app.set('trust proxy', 1);
 
-const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
-app.use(
-  cors({
-    origin: process.env.NODE_ENV === 'production' ? corsOrigin : true,
-    credentials: true,
-  })
-);
+app.use(cors(getCorsOptions()));
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use('/api/mini/pay/notify', express.raw({ type: '*/*' }));
 app.use(express.json({ limit: '1mb' }));
