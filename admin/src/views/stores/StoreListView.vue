@@ -2,20 +2,36 @@
   <div class="page-card">
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-input
-          v-model="query.keyword"
-          placeholder="搜索门店名称/联系人/电话"
-          clearable
-          style="width: 260px"
-          @clear="loadData"
-          @keyup.enter="loadData"
-        />
-        <el-button type="primary" @click="loadData">查询</el-button>
+        <template v-if="!sortMode">
+          <el-input
+            v-model="query.keyword"
+            placeholder="搜索门店名称/联系人/电话"
+            clearable
+            style="width: 260px"
+            @clear="loadData"
+            @keyup.enter="loadData"
+          />
+          <el-button type="primary" @click="loadData">查询</el-button>
+        </template>
+        <p v-else class="sort-mode-tip">拖拽左侧手柄调整顺序，松手后自动保存</p>
       </div>
-      <el-button type="primary" @click="openDialog()">新增门店</el-button>
+      <div>
+        <template v-if="sortMode">
+          <el-button @click="exitSortMode">完成排序</el-button>
+        </template>
+        <template v-else>
+          <el-button @click="enterSortMode">排序</el-button>
+          <el-button type="primary" @click="openDialog()">新增门店</el-button>
+        </template>
+      </div>
     </div>
 
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-table ref="tableRef" v-loading="loading" :data="list" border stripe row-key="id">
+      <el-table-column v-if="sortMode" width="52" align="center">
+        <template #default>
+          <el-icon class="drag-handle" title="拖拽排序"><Rank /></el-icon>
+        </template>
+      </el-table-column>
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="name" label="门店名称" min-width="140" />
       <el-table-column prop="contact" label="联系人" width="100" />
@@ -27,7 +43,7 @@
           <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '启用' : '停用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column v-if="!sortMode" label="操作" width="160" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
           <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
@@ -37,7 +53,7 @@
 
     <el-empty v-if="!loading && list.length === 0" description="暂无门店数据" />
 
-    <div class="pager">
+    <div v-if="!sortMode" class="pager">
       <el-pagination
         v-model:current-page="query.page"
         v-model:page-size="query.pageSize"
@@ -62,9 +78,6 @@
         <el-form-item label="地址" prop="address">
           <el-input v-model="form.address" type="textarea" :rows="2" />
         </el-form-item>
-        <el-form-item label="排序" prop="sort">
-          <el-input-number v-model="form.sort" :min="0" />
-        </el-form-item>
         <el-form-item label="状态" prop="enabled">
           <el-switch v-model="form.enabled" />
         </el-form-item>
@@ -78,17 +91,28 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getStores, createStore, updateStore, deleteStore } from '@/api/stores'
+import { Rank } from '@element-plus/icons-vue'
+import {
+  getStores,
+  getStoreSortList,
+  sortStores,
+  createStore,
+  updateStore,
+  deleteStore,
+} from '@/api/stores'
+import { useTableDragSort } from '@/composables/useTableDragSort'
 
 const loading = ref(false)
 const submitting = ref(false)
+const sortMode = ref(false)
 const list = ref([])
 const total = ref(0)
 const dialogVisible = ref(false)
 const editingId = ref(null)
 const formRef = ref()
+const tableRef = ref()
 
 const query = reactive({ page: 1, pageSize: 20, keyword: '' })
 const form = reactive({
@@ -96,7 +120,6 @@ const form = reactive({
   contact: '',
   phone: '',
   address: '',
-  sort: 0,
   enabled: true,
 })
 
@@ -115,6 +138,39 @@ async function loadData() {
   }
 }
 
+async function loadSortList() {
+  loading.value = true
+  try {
+    const res = await getStoreSortList()
+    list.value = res.data
+  } finally {
+    loading.value = false
+  }
+}
+
+async function enterSortMode() {
+  sortMode.value = true
+  await loadSortList()
+  nextTick(() => dragSort.init())
+}
+
+function exitSortMode() {
+  sortMode.value = false
+  dragSort.destroy()
+  loadData()
+}
+
+const dragSort = useTableDragSort({
+  tableRef,
+  listRef: list,
+  enabledRef: sortMode,
+  onSave: async (items) => {
+    await sortStores(items)
+    list.value = list.value.map((row, i) => ({ ...row, sort: i }))
+    ElMessage.success('排序已更新')
+  },
+})
+
 function openDialog(row) {
   editingId.value = row?.id || null
   Object.assign(form, {
@@ -122,7 +178,6 @@ function openDialog(row) {
     contact: row?.contact || '',
     phone: row?.phone || '',
     address: row?.address || '',
-    sort: row?.sort ?? 0,
     enabled: row?.enabled ?? true,
   })
   dialogVisible.value = true
@@ -136,7 +191,7 @@ async function handleSubmit() {
       await updateStore(editingId.value, form)
       ElMessage.success('更新成功')
     } else {
-      await createStore(form)
+      await createStore({ ...form, sort: 0 })
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false

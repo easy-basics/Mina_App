@@ -2,29 +2,55 @@
   <div class="page-card">
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-select
-          v-model="query.categoryId"
-          placeholder="选择系列"
-          clearable
-          style="width: 180px"
-          @change="loadData"
-        >
-          <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
-        </el-select>
-        <el-input
-          v-model="query.keyword"
-          placeholder="搜索货号/名称"
-          clearable
-          style="width: 200px"
-          @clear="loadData"
-          @keyup.enter="loadData"
-        />
-        <el-button type="primary" @click="loadData">查询</el-button>
+        <template v-if="!sortMode">
+          <el-select
+            v-model="query.categoryId"
+            placeholder="选择系列"
+            clearable
+            style="width: 180px"
+            @change="loadData"
+          >
+            <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+          <el-input
+            v-model="query.keyword"
+            placeholder="搜索货号/名称"
+            clearable
+            style="width: 200px"
+            @clear="loadData"
+            @keyup.enter="loadData"
+          />
+          <el-button type="primary" @click="loadData">查询</el-button>
+        </template>
+        <template v-else>
+          <el-select
+            v-model="sortCategoryId"
+            placeholder="选择要排序的系列"
+            style="width: 200px"
+            @change="loadSortList"
+          >
+            <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+          <p class="sort-mode-tip">拖拽左侧手柄调整该系列下商品顺序，松手后自动保存</p>
+        </template>
       </div>
-      <el-button type="primary" @click="openDialog()">新增商品</el-button>
+      <div>
+        <template v-if="sortMode">
+          <el-button @click="exitSortMode">完成排序</el-button>
+        </template>
+        <template v-else>
+          <el-button @click="enterSortMode">排序</el-button>
+          <el-button type="primary" @click="openDialog()">新增商品</el-button>
+        </template>
+      </div>
     </div>
 
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-table ref="tableRef" v-loading="loading" :data="list" border stripe row-key="id">
+      <el-table-column v-if="sortMode" width="52" align="center">
+        <template #default>
+          <el-icon class="drag-handle" title="拖拽排序"><Rank /></el-icon>
+        </template>
+      </el-table-column>
       <el-table-column label="封面" width="80">
         <template #default="{ row }">
           <img v-if="row.coverImage" :src="resolveMediaUrl(row.coverImage)" class="cover-thumb" alt="" />
@@ -33,9 +59,10 @@
       </el-table-column>
       <el-table-column prop="code" label="货号" width="100" />
       <el-table-column prop="name" label="名称" min-width="140" />
-      <el-table-column label="系列" width="120">
+      <el-table-column v-if="!sortMode" label="系列" width="120">
         <template #default="{ row }">{{ row.category?.name }}</template>
       </el-table-column>
+      <el-table-column prop="sort" label="排序" width="80" />
       <el-table-column label="SKU数" width="80">
         <template #default="{ row }">{{ row._count?.skus ?? 0 }}</template>
       </el-table-column>
@@ -44,7 +71,7 @@
           <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '上架' : '下架' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column v-if="!sortMode" label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="$router.push(`/products/${row.id}`)">详情/SKU</el-button>
           <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
@@ -53,9 +80,9 @@
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="!loading && list.length === 0" description="暂无商品数据" />
+    <el-empty v-if="!loading && list.length === 0" :description="sortMode ? '该系列暂无商品' : '暂无商品数据'" />
 
-    <div class="pager">
+    <div v-if="!sortMode" class="pager">
       <el-pagination
         v-model:current-page="query.page"
         v-model:page-size="query.pageSize"
@@ -80,17 +107,10 @@
           <el-input v-model="form.name" />
         </el-form-item>
         <el-form-item label="封面图">
-          <el-upload
-            :show-file-list="false"
-            :http-request="handleUpload"
-            accept="image/*"
-          >
+          <el-upload :show-file-list="false" :http-request="handleUpload" accept="image/*">
             <img v-if="form.coverImage" :src="resolveMediaUrl(form.coverImage)" class="upload-preview" alt="" />
             <el-button v-else type="primary" plain>上传图片</el-button>
           </el-upload>
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.sort" :min="0" />
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="form.enabled" active-text="上架" inactive-text="下架" />
@@ -105,21 +125,33 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getProducts, createProduct, updateProduct, deleteProduct } from '@/api/products'
+import { Rank } from '@element-plus/icons-vue'
+import {
+  getProducts,
+  getProductSortList,
+  sortProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from '@/api/products'
 import { getAllCategories } from '@/api/categories'
 import { uploadFile } from '@/api/upload'
 import { resolveMediaUrl, toStoredMediaPath } from '@/utils/media'
+import { useTableDragSort } from '@/composables/useTableDragSort'
 
 const loading = ref(false)
 const submitting = ref(false)
+const sortMode = ref(false)
+const sortCategoryId = ref(null)
 const list = ref([])
 const total = ref(0)
 const categories = ref([])
 const dialogVisible = ref(false)
 const editingId = ref(null)
 const formRef = ref()
+const tableRef = ref()
 
 const query = reactive({ page: 1, pageSize: 20, categoryId: null, keyword: '' })
 const form = reactive({
@@ -127,7 +159,6 @@ const form = reactive({
   code: '',
   name: '',
   coverImage: '',
-  sort: 0,
   enabled: true,
 })
 
@@ -156,6 +187,51 @@ async function loadData() {
   }
 }
 
+async function loadSortList() {
+  if (!sortCategoryId.value) {
+    list.value = []
+    return
+  }
+  loading.value = true
+  try {
+    const res = await getProductSortList(sortCategoryId.value)
+    list.value = res.data
+    nextTick(() => dragSort.init())
+  } finally {
+    loading.value = false
+  }
+}
+
+async function enterSortMode() {
+  if (!categories.value.length) {
+    await loadCategories()
+  }
+  sortCategoryId.value = query.categoryId || categories.value[0]?.id || null
+  if (!sortCategoryId.value) {
+    ElMessage.warning('请先创建系列')
+    return
+  }
+  sortMode.value = true
+  await loadSortList()
+}
+
+function exitSortMode() {
+  sortMode.value = false
+  dragSort.destroy()
+  loadData()
+}
+
+const dragSort = useTableDragSort({
+  tableRef,
+  listRef: list,
+  enabledRef: sortMode,
+  onSave: async (items) => {
+    await sortProducts(sortCategoryId.value, items)
+    list.value = list.value.map((row, i) => ({ ...row, sort: i }))
+    ElMessage.success('排序已更新')
+  },
+})
+
 function openDialog(row) {
   editingId.value = row?.id || null
   Object.assign(form, {
@@ -163,7 +239,6 @@ function openDialog(row) {
     code: row?.code || '',
     name: row?.name || '',
     coverImage: row?.coverImage || '',
-    sort: row?.sort ?? 0,
     enabled: row?.enabled ?? true,
   })
   dialogVisible.value = true
@@ -183,7 +258,7 @@ async function handleSubmit() {
       await updateProduct(editingId.value, form)
       ElMessage.success('更新成功')
     } else {
-      await createProduct(form)
+      await createProduct({ ...form, sort: 0 })
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false

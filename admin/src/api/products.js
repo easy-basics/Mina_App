@@ -4,6 +4,14 @@ export function getProducts(params) {
   return request.get('/products', { params })
 }
 
+export function getProductSortList(categoryId) {
+  return request.get('/products/sort-list', { params: { categoryId } })
+}
+
+export function sortProducts(categoryId, items) {
+  return request.put('/products/sort', { categoryId, items })
+}
+
 export function getProduct(id) {
   return request.get(`/products/${id}`)
 }
@@ -38,6 +46,10 @@ export function updateSku(productId, skuId, data) {
 
 export function deleteSku(productId, skuId) {
   return request.delete(`/products/${productId}/skus/${skuId}`)
+}
+
+export function sortSkus(productId, items) {
+  return request.put(`/products/${productId}/skus/sort`, { items })
 }
 
 // 商品详情图

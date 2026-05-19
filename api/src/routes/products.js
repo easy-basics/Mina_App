@@ -6,6 +6,7 @@ const {
   ensureProductExists,
   DEFAULT_PRODUCT_PARAMS,
 } = require('../services/productExtrasService');
+const { applySortUpdates } = require('../utils/sortBatch');
 
 const router = express.Router();
 
@@ -60,6 +61,41 @@ router.get('/', async (req, res, next) => {
       pageSize,
     });
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/sort-list', async (req, res, next) => {
+  try {
+    const categoryId = req.query.categoryId ? parseInt(req.query.categoryId, 10) : undefined;
+    if (!categoryId) {
+      return fail(res, '请选择系列', 400, 400);
+    }
+    const list = await prisma.product.findMany({
+      where: { categoryId },
+      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+      include: {
+        category: { select: { id: true, name: true } },
+        _count: { select: { skus: true } },
+      },
+    });
+    return success(res, list.map(serializeProduct));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/sort', async (req, res, next) => {
+  try {
+    const { items = [], categoryId } = req.body;
+    const catId = categoryId ? Number(categoryId) : undefined;
+    if (!catId) {
+      return fail(res, '请选择系列', 400, 400);
+    }
+    await applySortUpdates('product', items, { categoryId: catId });
+    return success(res, null, '排序已更新');
+  } catch (err) {
+    if (err.status) return fail(res, err.message, err.status, err.status);
     return next(err);
   }
 });
@@ -224,6 +260,19 @@ router.post('/:id/skus', async (req, res, next) => {
     });
     return success(res, { ...sku, price: Number(sku.price) }, '创建成功');
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/:id/skus/sort', async (req, res, next) => {
+  try {
+    const productId = parseInt(req.params.id, 10);
+    await ensureProductExists(productId);
+    const { items = [] } = req.body;
+    await applySortUpdates('productSku', items, { productId });
+    return success(res, null, '排序已更新');
+  } catch (err) {
+    if (err.status) return fail(res, err.message, err.status, err.status);
     return next(err);
   }
 });

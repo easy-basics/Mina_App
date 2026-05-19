@@ -34,11 +34,6 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="排序">
-                <el-input-number v-model="form.sort" :min="0" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="状态">
                 <el-switch v-model="form.enabled" active-text="上架" inactive-text="下架" />
               </el-form-item>
@@ -49,8 +44,11 @@
 
       <el-tab-pane label="商品详情" name="detail">
         <p class="section-tip">上传多张详情图，将展示在小程序「商品详情」Tab（支持拖拽排序）</p>
-        <div class="detail-images">
-          <div v-for="(img, index) in detailImages" :key="img.id" class="image-item">
+        <div ref="detailImagesRef" class="detail-images detail-images-sortable">
+          <div v-for="img in detailImages" :key="img.id" class="image-item">
+            <div class="drag-handle-wrap" title="拖拽排序">
+              <el-icon><Rank /></el-icon>
+            </div>
             <el-image
               :src="resolveMediaUrl(img.url)"
               fit="cover"
@@ -58,10 +56,6 @@
               :preview-src-list="detailImages.map((i) => resolveMediaUrl(i.url))"
             />
             <div class="image-actions">
-              <el-button size="small" :disabled="index === 0" @click="moveImage(index, -1)">左移</el-button>
-              <el-button size="small" :disabled="index === detailImages.length - 1" @click="moveImage(index, 1)">
-                右移
-              </el-button>
               <el-button size="small" type="danger" @click="handleDeleteImage(img)">删除</el-button>
             </div>
           </div>
@@ -122,10 +116,16 @@
       </el-tab-pane>
 
       <el-tab-pane label="SKU 规格" name="sku">
+        <p class="section-tip">拖拽左侧手柄可调整 SKU 展示顺序</p>
         <div class="toolbar">
           <el-button type="primary" @click="openSkuDialog()">新增 SKU</el-button>
         </div>
-        <el-table :data="skus" border stripe>
+        <el-table ref="skuTableRef" :data="skus" border stripe row-key="id">
+          <el-table-column width="52" align="center">
+            <template #default>
+              <el-icon class="drag-handle" title="拖拽排序"><Rank /></el-icon>
+            </template>
+          </el-table-column>
           <el-table-column prop="specName" label="规格名称" min-width="140" />
           <el-table-column label="单价(元/米)" width="120">
             <template #default="{ row }">{{ row.price }}</template>
@@ -155,9 +155,6 @@
         </el-form-item>
         <el-form-item label="单价" prop="price">
           <el-input-number v-model="skuForm.price" :min="0" :precision="2" :step="0.1" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="skuForm.sort" :min="0" />
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="skuForm.enabled" />
@@ -200,6 +197,7 @@ import {
   createSku,
   updateSku,
   deleteSku,
+  sortSkus,
   addDetailImage,
   deleteDetailImage,
   sortDetailImages,
@@ -208,6 +206,7 @@ import {
   deleteParam,
   addDefaultParams,
 } from '@/api/products'
+import { useTableDragSort } from '@/composables/useTableDragSort'
 import { getAllCategories } from '@/api/categories'
 import { getAllStores } from '@/api/stores'
 import { uploadFile } from '@/api/upload'
@@ -229,7 +228,12 @@ const formRef = ref()
 const skuFormRef = ref()
 const paramFormRef = ref()
 const paramsTableRef = ref()
-let paramsSortable = null
+const skuTableRef = ref()
+const detailImagesRef = ref(null)
+let detailImagesSortable = null
+const paramsSortEnabled = computed(() => activeTab.value === 'params')
+const skuSortEnabled = computed(() => activeTab.value === 'sku')
+const detailSortEnabled = computed(() => activeTab.value === 'detail')
 const skuDialogVisible = ref(false)
 const paramDialogVisible = ref(false)
 const editingSkuId = ref(null)
@@ -242,7 +246,6 @@ const form = reactive({
   categoryId: null,
   code: '',
   name: '',
-  sort: 0,
   enabled: true,
   storeIds: [],
 })
@@ -250,7 +253,6 @@ const form = reactive({
 const skuForm = reactive({
   specName: '',
   price: 0,
-  sort: 0,
   enabled: true,
 })
 
@@ -293,7 +295,6 @@ async function loadData() {
       categoryId: productRes.data.categoryId,
       code: productRes.data.code,
       name: productRes.data.name,
-      sort: productRes.data.sort,
       enabled: productRes.data.enabled,
       storeIds: productRes.data.storeIds || [],
     })
@@ -310,7 +311,7 @@ async function saveBasic() {
       categoryId: form.categoryId,
       code: form.code,
       name: form.name,
-      sort: form.sort,
+      sort: product.value?.sort ?? 0,
       enabled: form.enabled,
     })
     await updateProductStores(productId.value, form.storeIds)
@@ -340,14 +341,37 @@ async function handleDeleteImage(img) {
   loadData()
 }
 
-async function moveImage(index, delta) {
-  const list = [...detailImages.value]
-  const target = index + delta
-  if (target < 0 || target >= list.length) return
-  ;[list[index], list[target]] = [list[target], list[index]]
-  const items = list.map((img, i) => ({ id: img.id, sort: i }))
-  await sortDetailImages(productId.value, items)
-  detailImages.value = list.map((img, i) => ({ ...img, sort: i }))
+function destroyDetailImagesSortable() {
+  detailImagesSortable?.destroy()
+  detailImagesSortable = null
+}
+
+function initDetailImagesSortable() {
+  destroyDetailImagesSortable()
+  const el = detailImagesRef.value
+  if (!el || detailImages.value.length === 0) return
+
+  detailImagesSortable = Sortable.create(el, {
+    animation: 180,
+    draggable: '.image-item',
+    handle: '.drag-handle-wrap',
+    ghostClass: 'drag-row-ghost',
+    filter: '.detail-uploader',
+    onEnd({ oldIndex, newIndex }) {
+      if (oldIndex === newIndex || oldIndex == null || newIndex == null) return
+      const list = [...detailImages.value]
+      const [moved] = list.splice(oldIndex, 1)
+      list.splice(newIndex, 0, moved)
+      detailImages.value = list
+      const items = list.map((img, i) => ({ id: img.id, sort: i }))
+      sortDetailImages(productId.value, items)
+        .then(() => {
+          detailImages.value = list.map((img, i) => ({ ...img, sort: i }))
+          ElMessage.success('排序已更新')
+        })
+        .catch(() => loadData())
+    },
+  })
 }
 
 function syncParamSortIndex() {
@@ -384,48 +408,41 @@ async function saveParams(showMessage = true) {
   }
 }
 
-function destroyParamsSortable() {
-  paramsSortable?.destroy()
-  paramsSortable = null
-}
+useTableDragSort({
+  tableRef: paramsTableRef,
+  listRef: params,
+  enabledRef: paramsSortEnabled,
+  onSave: async () => {
+    syncParamSortIndex()
+    const ok = await saveParams(false)
+    if (ok) ElMessage.success('排序已更新')
+  },
+})
 
-function initParamsSortable() {
-  destroyParamsSortable()
-  const tbody = paramsTableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody')
-  if (!tbody || params.value.length === 0) return
-
-  paramsSortable = Sortable.create(tbody, {
-    animation: 180,
-    handle: '.drag-handle',
-    ghostClass: 'params-row-ghost',
-    chosenClass: 'params-row-chosen',
-    onEnd({ oldIndex, newIndex }) {
-      if (oldIndex === newIndex || oldIndex == null || newIndex == null) return
-      const list = [...params.value]
-      const [moved] = list.splice(oldIndex, 1)
-      list.splice(newIndex, 0, moved)
-      params.value = list
-      syncParamSortIndex()
-      saveParams(false).then((ok) => {
-        if (ok) ElMessage.success('排序已更新')
-      })
-    },
-  })
-}
+useTableDragSort({
+  tableRef: skuTableRef,
+  listRef: skus,
+  enabledRef: skuSortEnabled,
+  onSave: async (items) => {
+    await sortSkus(productId.value, items)
+    skus.value = skus.value.map((row, i) => ({ ...row, sort: i }))
+    ElMessage.success('排序已更新')
+  },
+})
 
 watch(activeTab, (tab) => {
-  if (tab === 'params') {
-    nextTick(() => initParamsSortable())
+  if (tab === 'detail') {
+    nextTick(() => initDetailImagesSortable())
   } else {
-    destroyParamsSortable()
+    destroyDetailImagesSortable()
   }
 })
 
 watch(
-  () => params.value.map((p) => p.id).join(','),
+  () => detailImages.value.map((i) => i.id).join(','),
   () => {
-    if (activeTab.value === 'params') {
-      nextTick(() => initParamsSortable())
+    if (activeTab.value === 'detail') {
+      nextTick(() => initDetailImagesSortable())
     }
   }
 )
@@ -467,7 +484,6 @@ function openSkuDialog(row) {
   Object.assign(skuForm, {
     specName: row?.specName || '',
     price: row?.price ?? 0,
-    sort: row?.sort ?? 0,
     enabled: row?.enabled ?? true,
   })
   skuDialogVisible.value = true
@@ -477,11 +493,18 @@ async function handleSkuSubmit() {
   await skuFormRef.value.validate()
   skuSubmitting.value = true
   try {
+    const existing = editingSkuId.value
+      ? skus.value.find((s) => s.id === editingSkuId.value)
+      : null
+    const payload = {
+      ...skuForm,
+      sort: existing?.sort ?? skus.value.length,
+    }
     if (editingSkuId.value) {
-      await updateSku(productId.value, editingSkuId.value, skuForm)
+      await updateSku(productId.value, editingSkuId.value, payload)
       ElMessage.success('SKU 更新成功')
     } else {
-      await createSku(productId.value, skuForm)
+      await createSku(productId.value, payload)
       ElMessage.success('SKU 创建成功')
     }
     skuDialogVisible.value = false
@@ -500,13 +523,13 @@ async function handleDeleteSku(row) {
 
 onMounted(async () => {
   await loadData()
-  if (activeTab.value === 'params') {
-    nextTick(() => initParamsSortable())
+  if (activeTab.value === 'detail') {
+    nextTick(() => initDetailImagesSortable())
   }
 })
 
 onBeforeUnmount(() => {
-  destroyParamsSortable()
+  destroyDetailImagesSortable()
 })
 </script>
 
@@ -529,6 +552,19 @@ onBeforeUnmount(() => {
 
 .image-item {
   width: 148px;
+  position: relative;
+}
+
+.image-item .drag-handle-wrap {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
 }
 
 .detail-img {
@@ -575,25 +611,6 @@ onBeforeUnmount(() => {
 
 .params-table {
   max-width: 720px;
-}
-
-:deep(.params-table .drag-handle) {
-  cursor: grab;
-  color: #909399;
-  font-size: 18px;
-}
-
-:deep(.params-table .drag-handle:active) {
-  cursor: grabbing;
-}
-
-:deep(.params-row-ghost) {
-  opacity: 0.5;
-  background: var(--app-primary-bg, #f3f0ff) !important;
-}
-
-:deep(.params-row-chosen) {
-  background: var(--app-primary-bg, #f3f0ff) !important;
 }
 
 .toolbar {

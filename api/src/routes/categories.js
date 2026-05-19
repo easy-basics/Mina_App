@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../utils/prisma');
 const { success, fail } = require('../utils/response');
+const { applySortUpdates } = require('../utils/sortBatch');
 
 const router = express.Router();
 
@@ -40,6 +41,30 @@ router.get('/all', async (req, res, next) => {
     });
     return success(res, list);
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/sort-list', async (req, res, next) => {
+  try {
+    const list = await prisma.category.findMany({
+      where: { parentId: null },
+      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+      include: { _count: { select: { products: true } } },
+    });
+    return success(res, list);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.put('/sort', async (req, res, next) => {
+  try {
+    const { items = [] } = req.body;
+    await applySortUpdates('category', items, { parentId: null });
+    return success(res, null, '排序已更新');
+  } catch (err) {
+    if (err.status) return fail(res, err.message, err.status, err.status);
     return next(err);
   }
 });

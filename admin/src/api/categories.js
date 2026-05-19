@@ -8,6 +8,14 @@ export function getAllCategories() {
   return request.get('/categories/all')
 }
 
+export function getCategorySortList() {
+  return request.get('/categories/sort-list')
+}
+
+export function sortCategories(items) {
+  return request.put('/categories/sort', { items })
+}
+
 export function createCategory(data) {
   return request.post('/categories', data)
 }

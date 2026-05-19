@@ -1,0 +1,38 @@
+.drag-handle {
+  cursor: grab;
+  color: #909399;
+  font-size: 18px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-row-ghost {
+  opacity: 0.5;
+  background: #f3f0ff !important;
+}
+
+.drag-row-chosen {
+  background: #faf9ff !important;
+}
+
+.sort-mode-tip {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f3f0ff;
+  color: #5c4db8;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.detail-images-sortable .image-item {
+  cursor: default;
+}
+
+.detail-images-sortable .drag-handle-wrap {
+  cursor: grab;
+  padding: 4px 8px;
+  color: #909399;
+  font-size: 12px;
+}
