@@ -4,11 +4,11 @@
       <view class="nav-left">
         <view class="nav-pill">
           <view class="pill-btn" @click="emit('home')">
-            <image class="pill-icon" src="/static/icons/nav-home.svg" mode="aspectFit" />
+            <image class="pill-icon" src="/static/icons/nav-home-light.svg" mode="aspectFit" />
           </view>
           <view class="pill-divider" />
           <view class="pill-btn" @click="emit('search')">
-            <image class="pill-icon" src="/static/icons/nav-search.svg" mode="aspectFit" />
+            <image class="pill-icon" src="/static/icons/nav-search-light.svg" mode="aspectFit" />
           </view>
         </view>
       </view>
@@ -64,9 +64,10 @@ defineExpose({ metrics })
   align-items: center;
   height: 64rpx;
   padding: 0 8rpx;
-  border: 1rpx solid #e5e5e5;
+  border: 1rpx solid rgba(255, 255, 255, 0.25);
   border-radius: 32rpx;
-  background: #fff;
+  background: rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
 }
 
 .pill-btn {
@@ -80,7 +81,7 @@ defineExpose({ metrics })
 .pill-divider {
   width: 1rpx;
   height: 32rpx;
-  background: #e0e0e0;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .pill-icon {
