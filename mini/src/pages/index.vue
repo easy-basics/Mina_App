@@ -27,14 +27,8 @@
       </scroll-view>
       <scroll-view scroll-y class="product-panel" @scrolltolower="loadMore">
         <view class="product-grid">
-          <view
-            v-for="p in products"
-            :key="p.id"
-            class="product-card"
-            @click="goDetail(p.id)"
-          >
-            <image :src="p.coverImage || '/static/logo.svg'" class="cover" mode="aspectFill" />
-            <text class="p-name">{{ p.code }}{{ p.name }}</text>
+          <view v-for="p in products" :key="p.id" class="grid-item">
+            <ProductCard :product="p" @click="(item) => goDetail(item.id)" />
           </view>
         </view>
         <view v-if="!loading && products.length === 0" class="empty">暂无商品</view>
@@ -49,6 +43,7 @@ import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getCategories, getProducts } from '@/api/catalog'
 import { useSessionStore } from '@/stores/session'
+import ProductCard from '@/components/ProductCard.vue'
 
 const sessionStore = useSessionStore()
 
@@ -181,22 +176,12 @@ onShow(() => {
   flex-wrap: wrap;
   gap: 16rpx;
 }
-.product-card {
+.grid-item {
   width: calc(50% - 8rpx);
-  background: #fff;
-  border-radius: 12rpx;
-  overflow: hidden;
 }
-.cover {
-  width: 100%;
+
+.grid-item :deep(.cover) {
   height: 240rpx;
-  background: #eee;
-}
-.p-name {
-  display: block;
-  padding: 12rpx;
-  font-size: 24rpx;
-  line-height: 1.4;
 }
 .empty,
 .loading {

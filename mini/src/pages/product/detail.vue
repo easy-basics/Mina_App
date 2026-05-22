@@ -95,7 +95,7 @@ onLoad((query) => {
 })
 
 onShareAppMessage(() => ({
-  title: product.value?.name || '布行好物',
+  title: product.value?.name || '才汇纺织',
   path: `/pages/product/detail?id=${productId.value}`,
 }))
 

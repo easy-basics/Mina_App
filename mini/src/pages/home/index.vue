@@ -1,5 +1,7 @@
 <template>
-  <scroll-view scroll-y class="page">
+  <view class="page-wrap">
+    <HomeNavBar title="品牌首页" @home="onNavHome" @search="goSearch" />
+    <scroll-view scroll-y class="page" :scroll-top="scrollTop" scroll-with-animation>
     <view class="banner-wrap">
       <swiper
         class="banner-swiper"
@@ -8,7 +10,7 @@
         :interval="4000"
         indicator-dots
         indicator-color="rgba(255,255,255,0.4)"
-        indicator-active-color="#ffffff"
+        indicator-active-color="#ff6633"
       >
         <swiper-item v-for="(img, i) in banners" :key="i">
           <image class="banner-img" :src="img" mode="aspectFill" />
@@ -74,10 +76,15 @@
     </view>
 
     <view class="page-bottom" />
-  </scroll-view>
+    </scroll-view>
+  </view>
 </template>
 
 <script setup>
+import { ref, nextTick } from 'vue'
+import HomeNavBar from '@/components/HomeNavBar.vue'
+
+const scrollTop = ref(0)
 const banners = [
   '/static/banner/ban1.jpg',
   '/static/banner/ban2.jpg',
@@ -108,9 +115,25 @@ function goMine() {
 function goIntro() {
   uni.navigateTo({ url: '/pages/brand/intro' })
 }
+
+function goSearch() {
+  uni.navigateTo({ url: '/pages/search/index' })
+}
+
+function onNavHome() {
+  scrollTop.value = 1
+  nextTick(() => {
+    scrollTop.value = 0
+  })
+}
 </script>
 
 <style scoped>
+.page-wrap {
+  min-height: 100vh;
+  background: #eeeeee;
+}
+
 .page {
   height: 100vh;
   background: #eeeeee;
@@ -119,22 +142,37 @@ function goIntro() {
   box-sizing: border-box;
 }
 
+.page :deep(.uni-scroll-view),
+.page :deep(.uni-scroll-view-content) {
+  background: #eeeeee;
+}
+
 .banner-wrap {
   width: 100%;
   margin: 0;
   padding: 0;
+  line-height: 0;
+  font-size: 0;
+  vertical-align: top;
 }
 
 .banner-swiper {
   width: 100%;
-  height: 360rpx;
+  height: 936rpx;
   border-radius: 0;
+  background: transparent;
+  display: block;
+}
+
+.banner-swiper :deep(.uni-swiper-dot-active) {
+  background: var(--color-primary) !important;
 }
 
 .banner-img {
   width: 100%;
-  height: 360rpx;
+  height: 936rpx;
   display: block;
+  vertical-align: top;
 }
 
 .menu-card {

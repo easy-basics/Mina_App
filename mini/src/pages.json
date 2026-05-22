@@ -3,8 +3,21 @@
     {
       "path": "pages/home/index",
       "style": {
-        "navigationBarTitleText": "布行",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "才汇纺织",
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/search/index",
+      "style": {
+        "navigationBarTitleText": "搜索"
+      }
+    },
+    {
+      "path": "pages/search/result",
+      "style": {
+        "navigationBarTitleText": "浏览主题"
       }
     },
     {
@@ -77,7 +90,7 @@
   "globalStyle": {
     "navigationBarBackgroundColor": "#ff6633",
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "布行",
+    "navigationBarTitleText": "才汇纺织",
     "backgroundColor": "#f5f6f8"
   }
 }
