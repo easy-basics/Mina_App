@@ -62,9 +62,9 @@ onShow(load)
   font-size: 28rpx;
 }
 .tab.active {
-  color: #7b61ff;
+  color: var(--color-primary);
   font-weight: 600;
-  border-bottom: 4rpx solid #7b61ff;
+  border-bottom: 4rpx solid var(--color-primary);
 }
 .order-card {
   background: #fff;
@@ -77,7 +77,7 @@ onShow(load)
   justify-content: space-between;
 }
 .status {
-  color: #7b61ff;
+  color: var(--color-primary);
   font-size: 26rpx;
 }
 .store {

@@ -58,8 +58,8 @@ onShow(load)
 }
 .tag {
   font-size: 22rpx;
-  color: #7b61ff;
-  border: 1rpx solid #7b61ff;
+  color: var(--color-primary);
+  border: 1rpx solid var(--color-primary);
   padding: 2rpx 8rpx;
   border-radius: 4rpx;
 }
@@ -78,7 +78,7 @@ onShow(load)
 }
 .add-btn {
   margin: 32rpx;
-  background: #7b61ff;
+  background: var(--color-primary);
   color: #fff;
 }
 .empty {

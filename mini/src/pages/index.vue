@@ -1,5 +1,9 @@
 <template>
   <view class="page">
+    <view v-if="sessionStore.selectedStore" class="store-bar">
+      <text class="store-label">当前门店</text>
+      <text class="store-name">{{ sessionStore.selectedStore.name }}</text>
+    </view>
     <view class="search-bar">
       <input
         v-model="keyword"
@@ -37,16 +41,16 @@
         <view v-if="loading" class="loading">加载中...</view>
       </scroll-view>
     </view>
-    <view class="bottom-tabs">
-      <text class="bottom-tab active">全部商品</text>
-      <text class="bottom-tab muted">主题</text>
-    </view>
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { getCategories, getProducts } from '@/api/catalog'
+import { useSessionStore } from '@/stores/session'
+
+const sessionStore = useSessionStore()
 
 const categories = ref([])
 const products = ref([])
@@ -102,6 +106,14 @@ function goDetail(id) {
 }
 
 onMounted(loadCategories)
+
+onShow(() => {
+  if (sessionStore.selectedStore?.name) {
+    uni.setNavigationBarTitle({ title: sessionStore.selectedStore.name })
+  } else {
+    uni.setNavigationBarTitle({ title: '浏览商品' })
+  }
+})
 </script>
 
 <style scoped>
@@ -137,10 +149,27 @@ onMounted(loadCategories)
   border-left: 6rpx solid transparent;
 }
 .cat-item.active {
-  color: #7b61ff;
+  color: var(--color-primary);
   font-weight: 600;
-  background: #f3f0ff;
-  border-left-color: #7b61ff;
+  background: var(--color-primary-bg);
+  border-left-color: var(--color-primary);
+}
+.store-bar {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 24rpx;
+  background: var(--color-primary-bg);
+  border-bottom: 1rpx solid #ffe0d0;
+}
+.store-label {
+  font-size: 24rpx;
+  color: #999;
+}
+.store-name {
+  font-size: 28rpx;
+  color: var(--color-primary);
+  font-weight: 600;
 }
 .product-panel {
   flex: 1;
@@ -174,22 +203,5 @@ onMounted(loadCategories)
   text-align: center;
   color: #999;
   padding: 40rpx;
-}
-.bottom-tabs {
-  display: flex;
-  justify-content: center;
-  gap: 48rpx;
-  padding: 16rpx;
-  background: #fff;
-  border-top: 1rpx solid #eee;
-}
-.bottom-tab {
-  font-size: 28rpx;
-  color: #7b61ff;
-  font-weight: 600;
-}
-.bottom-tab.muted {
-  color: #999;
-  font-weight: 400;
 }
 </style>

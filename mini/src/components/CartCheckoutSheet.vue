@@ -46,6 +46,7 @@ import { createOrder, payWechat, mockPaySuccess } from '@/api/order'
 import { ensureLogin } from '@/utils/request'
 import { ORDER_TYPES } from '@/constants/orders'
 import { useCartStore } from '@/stores/cart'
+import { useSessionStore } from '@/stores/session'
 
 const props = defineProps({
   visible: Boolean,
@@ -63,6 +64,7 @@ const addresses = ref([])
 const selectedAddressId = ref(null)
 const submitting = ref(false)
 const cartStore = useCartStore()
+const sessionStore = useSessionStore()
 
 const selectedAddress = computed(() =>
   addresses.value.find((a) => a.id === selectedAddressId.value)
@@ -82,7 +84,9 @@ watch(
     if (!v) return
     const storeRes = await getStores()
     stores.value = storeRes.data
-    selectedStoreId.value = stores.value[0]?.id || null
+    const sessionId = sessionStore.selectedStore?.id
+    const inList = stores.value.some((s) => s.id === sessionId)
+    selectedStoreId.value = inList ? sessionId : stores.value[0]?.id || null
     deliveryType.value = 'pickup'
     selectedAddressId.value = null
     if (props.orderType === ORDER_TYPES.SAMPLE) {
@@ -205,8 +209,8 @@ async function submit() {
   font-size: 26rpx;
 }
 .store-chip.active {
-  border-color: #7b61ff;
-  color: #7b61ff;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 .delivery-row {
   display: flex;
@@ -220,8 +224,8 @@ async function submit() {
   font-size: 26rpx;
 }
 .delivery-opt.active {
-  border-color: #7b61ff;
-  color: #7b61ff;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 .addr-pick {
   padding: 16rpx;
@@ -237,7 +241,7 @@ async function submit() {
   margin-bottom: 16rpx;
 }
 .confirm-btn {
-  background: #7b61ff;
+  background: var(--color-primary);
   color: #fff;
 }
 </style>

@@ -2,6 +2,8 @@
 
 前后端分离的布行（面料）管理后台：门店、系列、商品/SKU、布版/大货订单管理。
 
+**详细业务与功能需求**见 [docs/需求说明.md](docs/需求说明.md)。
+
 ## 技术栈
 
 - **admin**：Vue 3 + Vite + Element Plus + Pinia
@@ -16,6 +18,7 @@ mina/
 ├── admin/          # 管理后台前端
 ├── api/            # 后端 API
 ├── mini/           # 微信小程序 (uni-app)
+├── docs/           # 需求说明等文档
 ├── .env.example    # 环境变量示例
 └── README.md
 ```

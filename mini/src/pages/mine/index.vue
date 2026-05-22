@@ -42,13 +42,13 @@ function logout() {
   min-height: 100vh;
 }
 .header {
-  background: linear-gradient(135deg, #7b61ff, #9b85ff);
+  background: linear-gradient(135deg, #ff6633, #ff8855);
   padding: 60rpx 32rpx;
   color: #fff;
 }
 .login-btn {
   background: #fff;
-  color: #7b61ff;
+  color: var(--color-primary);
   border-radius: 8rpx;
 }
 .menu {

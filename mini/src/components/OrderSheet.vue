@@ -70,6 +70,7 @@ import { getAddresses } from '@/api/address'
 import { ensureLogin } from '@/utils/request'
 import { ORDER_TYPES } from '@/constants/orders'
 import { useCartStore } from '@/stores/cart'
+import { useSessionStore } from '@/stores/session'
 
 const props = defineProps({
   visible: Boolean,
@@ -89,6 +90,7 @@ const addresses = ref([])
 const selectedAddressId = ref(null)
 const submitting = ref(false)
 const cartStore = useCartStore()
+const sessionStore = useSessionStore()
 
 const selectedAddress = computed(() =>
   addresses.value.find((a) => a.id === selectedAddressId.value)
@@ -106,7 +108,9 @@ watch(
   async (v) => {
     if (v && props.product) {
       stores.value = props.product.stores || []
-      selectedStoreId.value = stores.value[0]?.id || null
+      const sessionId = sessionStore.selectedStore?.id
+      const inList = stores.value.some((s) => s.id === sessionId)
+      selectedStoreId.value = inList ? sessionId : stores.value[0]?.id || null
       quantities.value = {}
       colorKeyword.value = ''
       deliveryType.value = 'pickup'
@@ -344,8 +348,8 @@ async function submit() {
   font-size: 26rpx;
 }
 .delivery-opt.active {
-  border-color: #7b61ff;
-  color: #7b61ff;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 .addr-pick {
   padding: 16rpx;
@@ -356,7 +360,7 @@ async function submit() {
 }
 .addr-link {
   font-size: 24rpx;
-  color: #7b61ff;
+  color: var(--color-primary);
   display: block;
   margin-bottom: 12rpx;
 }

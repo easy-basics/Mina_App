@@ -201,7 +201,7 @@ function onCheckoutSuccess() {
   font-size: 28rpx;
 }
 .btn-primary {
-  background: #7b61ff;
+  background: var(--color-primary);
 }
 .btn-sample {
   background: #e53935;

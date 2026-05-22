@@ -125,7 +125,7 @@ function openOrder(type) {
 }
 
 function goCart() {
-  uni.switchTab({ url: '/pages/cart/index' })
+  uni.navigateTo({ url: '/pages/cart/index' })
 }
 
 function goStore() {
@@ -291,7 +291,7 @@ onMounted(() => {
   line-height: 72rpx;
 }
 .btn-cart {
-  background: #7b61ff;
+  background: var(--color-primary);
   max-width: 100rpx;
   flex: 0 0 100rpx;
 }

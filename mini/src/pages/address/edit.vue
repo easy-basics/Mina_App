@@ -76,7 +76,7 @@ onMounted(load)
 }
 .save-btn {
   margin: 32rpx;
-  background: #7b61ff;
+  background: var(--color-primary);
   color: #fff;
 }
 </style>
