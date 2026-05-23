@@ -15,3 +15,7 @@ export function updateAddress(id, data) {
 export function deleteAddress(id) {
   return request({ url: `/mini/addresses/${id}`, method: 'DELETE' })
 }
+
+export function importAddress(data) {
+  return request({ url: '/mini/addresses/import', method: 'POST', data })
+}

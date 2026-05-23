@@ -1,5 +1,8 @@
 <template>
   <view class="page">
+    <!-- #ifdef MP-WEIXIN -->
+    <button class="import-btn" @click="importFromWechat">从微信导入地址</button>
+    <!-- #endif -->
     <view v-for="a in list" :key="a.id" class="card" @click="edit(a)">
       <view class="row">
         <text class="name">{{ a.name }} {{ a.phone }}</text>
@@ -8,7 +11,12 @@
       <text class="addr">{{ a.province }}{{ a.city }}{{ a.district }}{{ a.detail }}</text>
       <text class="del" @click.stop="remove(a)">删除</text>
     </view>
-    <view v-if="!list.length" class="empty">暂无地址</view>
+    <view v-if="!list.length" class="empty">
+      <text class="empty-text">暂无地址</text>
+      <!-- #ifdef MP-WEIXIN -->
+      <button class="empty-btn" @click="importFromWechat">从微信导入</button>
+      <!-- #endif -->
+    </view>
     <button class="add-btn" @click="add">新增地址</button>
   </view>
 </template>
@@ -18,6 +26,7 @@ import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getAddresses, deleteAddress } from '@/api/address'
 import { ensureLogin } from '@/utils/request'
+import { chooseAndImportAddress } from '@/utils/wechatAddress'
 
 const list = ref([])
 
@@ -36,14 +45,43 @@ function edit(a) {
 }
 
 async function remove(a) {
+  const res = await uni.showModal({ title: '提示', content: '确定删除该地址？' })
+  if (!res.confirm) return
   await deleteAddress(a.id)
+  uni.showToast({ title: '已删除' })
   load()
+}
+
+async function importFromWechat() {
+  if (!ensureLogin()) return
+  try {
+    await chooseAndImportAddress()
+    uni.showToast({ title: '已同步收货地址' })
+    load()
+  } catch (e) {
+    if (e?.message === 'cancel') return
+  }
 }
 
 onShow(load)
 </script>
 
 <style scoped>
+.page {
+  min-height: 100vh;
+  padding-bottom: 32rpx;
+}
+.import-btn {
+  margin: 16rpx;
+  background: #fff;
+  color: var(--color-primary);
+  border: 1rpx solid var(--color-primary);
+  border-radius: 12rpx;
+  font-size: 28rpx;
+}
+.import-btn::after {
+  border: none;
+}
 .card {
   background: #fff;
   margin: 16rpx;
@@ -56,11 +94,16 @@ onShow(load)
   align-items: center;
   gap: 12rpx;
 }
+.name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #2d2a3e;
+}
 .tag {
   font-size: 22rpx;
   color: var(--color-primary);
-  border: 1rpx solid var(--color-primary);
-  padding: 2rpx 8rpx;
+  background: var(--color-primary-bg);
+  padding: 4rpx 12rpx;
   border-radius: 4rpx;
 }
 .addr {
@@ -68,22 +111,39 @@ onShow(load)
   color: #666;
   margin-top: 12rpx;
   display: block;
+  padding-right: 80rpx;
 }
 .del {
   position: absolute;
   right: 24rpx;
-  top: 24rpx;
+  bottom: 24rpx;
+  font-size: 26rpx;
   color: #999;
-  font-size: 24rpx;
-}
-.add-btn {
-  margin: 32rpx;
-  background: var(--color-primary);
-  color: #fff;
 }
 .empty {
   text-align: center;
+  padding: 80rpx 48rpx;
+}
+.empty-text {
   color: #999;
-  padding: 60rpx;
+  font-size: 28rpx;
+  display: block;
+  margin-bottom: 24rpx;
+}
+.empty-btn {
+  display: inline-block;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 28rpx;
+  padding: 0 48rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 36rpx;
+}
+.add-btn {
+  margin: 16rpx;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 12rpx;
 }
 </style>

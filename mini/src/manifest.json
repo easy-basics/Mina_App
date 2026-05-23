@@ -1,6 +1,6 @@
 {
   "name": "才汇纺织",
-  "appid": "wxe4906aa5f4792e31",
+  "appid": "wxfb51a83756425976",
   "description": "",
   "versionName": "1.0.0",
   "versionCode": "100",
@@ -49,13 +49,16 @@
   },
   "quickapp": {},
   "mp-weixin": {
-    "appid": "wxe4906aa5f4792e31",
+    "appid": "wxfb51a83756425976",
     "setting": {
       "urlCheck": false
     },
     "usingComponents": true,
     "darkmode": true,
-    "themeLocation": "theme.json"
+    "themeLocation": "theme.json",
+    "requiredPrivateInfos": [
+      "chooseAddress"
+    ]
   },
   "mp-alipay": {
     "usingComponents": true

@@ -1,4 +1,5 @@
-import { API_BASE } from '@/config'
+import { API_BASE, DEFAULT_AVATAR } from '@/config'
+import { generateRandomNickname } from '@/utils/randomNickname'
 
 function getToken() {
   return uni.getStorageSync('token') || ''
@@ -59,7 +60,10 @@ export function ensureLogin() {
   return true
 }
 
-export async function loginWithWechat() {
+export async function loginWithWechat(profile) {
+  const nickname = profile?.nickname ?? generateRandomNickname()
+  const avatar = profile?.avatar ?? null
+
   return new Promise((resolve, reject) => {
     uni.login({
       provider: 'weixin',
@@ -68,7 +72,7 @@ export async function loginWithWechat() {
           const body = await request({
             url: '/mini/auth/wechat',
             method: 'POST',
-            data: { code: loginRes.code },
+            data: { code: loginRes.code, nickname, avatar },
             auth: false,
           })
           uni.setStorageSync('token', body.data.token)
@@ -82,3 +86,5 @@ export async function loginWithWechat() {
     })
   })
 }
+
+export { DEFAULT_AVATAR }
