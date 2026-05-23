@@ -5,7 +5,7 @@
         <image :src="img" class="banner-img" mode="aspectFill" />
       </swiper-item>
     </swiper>
-    <image v-else class="banner banner-img" :src="product.coverImage" mode="aspectFill" />
+    <image v-else class="banner banner-img" :src="coverSrc" mode="aspectFill" />
 
     <view class="info">
       <text class="title">{{ product.name }}</text>
@@ -70,6 +70,7 @@ import { getProduct } from '@/api/catalog'
 import { addFavorite, removeFavorite } from '@/api/favorite'
 import { ORDER_TYPES } from '@/constants/orders'
 import { ensureLogin } from '@/utils/request'
+import { resolveImageUrl } from '@/utils/media'
 import { useCartStore } from '@/stores/cart'
 import OrderSheet from '@/components/OrderSheet.vue'
 
@@ -83,10 +84,13 @@ const cartStore = useCartStore()
 
 const images = computed(() => {
   if (!product.value) return []
-  const list = product.value.detailImages?.map((i) => i.url) || []
+  const list = product.value.detailImages?.map((i) => resolveImageUrl(i.url)).filter(Boolean) || []
   if (list.length) return list
-  return product.value.coverImage ? [product.value.coverImage] : []
+  const cover = resolveImageUrl(product.value.coverImage)
+  return cover ? [cover] : []
 })
+
+const coverSrc = computed(() => resolveImageUrl(product.value?.coverImage))
 
 const cartCount = computed(() => cartStore.count)
 

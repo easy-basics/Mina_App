@@ -5,7 +5,7 @@
     </view>
     <view v-else>
       <view v-for="item in items" :key="item.id" class="cart-item">
-        <image :src="item.product.coverImage" class="thumb" mode="aspectFill" />
+        <image :src="resolveImageUrl(item.product.coverImage, '/static/logo.svg')" class="thumb" mode="aspectFill" />
         <view class="info">
           <text class="name">{{ item.product.code }}{{ item.product.name }}</text>
           <text class="spec">{{ item.specName }} · {{ item.orderType === 'sample' ? '布版' : '大货' }}</text>
@@ -58,6 +58,7 @@ import { updateCartItem, removeCartItem } from '@/api/cart'
 import { getProduct } from '@/api/catalog'
 import { ORDER_TYPES } from '@/constants/orders'
 import CartCheckoutSheet from '@/components/CartCheckoutSheet.vue'
+import { resolveImageUrl } from '@/utils/media'
 
 const userStore = useUserStore()
 const cartStore = useCartStore()

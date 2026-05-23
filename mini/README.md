@@ -18,16 +18,24 @@ npm run dev
 
 ## 配置
 
-API 地址通过环境变量区分（与 admin 一致）：
+API 地址与图片域名通过环境变量区分：
 
-| 命令 | 环境文件 | 默认 API |
-|------|----------|----------|
-| `npm run dev` | `.env.development` | `http://127.0.0.1:3000/api` |
-| `npm run build` | `.env.production` | `https://api.mina.bigdeng.com/api` |
+| 变量 | 说明 | 开发 | 生产 |
+|------|------|------|------|
+| `VITE_API_BASE_URL` | 接口根路径 | `http://127.0.0.1:3000/api` | `https://api.mina.bigdeng.com/api` |
+| `VITE_ASSET_BASE_URL` | 上传图片域名 | `http://127.0.0.1:3000` | `https://api.mina.bigdeng.com` |
+
+| 命令 | 读取文件 |
+|------|----------|
+| `npm run dev` | `.env.development` |
+| `npm run build` | `.env.production` |
+
+小程序会将 `/uploads/...` 拼接到 `VITE_ASSET_BASE_URL`（生产强制 https）。  
+服务端 `api/.env` 请同步设置 `API_PUBLIC_URL=https://api.mina.bigdeng.com`。
 
 本地覆盖可复制 `mini/.env.example` 为 `.env.local`（见 Vite 文档）。
 
-真机调试请将 `.env.development` 改为电脑局域网 IP，例如 `http://192.168.1.10:3000/api`，并保证 `api/.env` 中：
+真机调试请将 `.env.development` 改为电脑局域网 IP，例如：
 
 ```env
 API_PUBLIC_URL=http://192.168.1.10:3000

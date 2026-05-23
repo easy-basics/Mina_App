@@ -1,7 +1,7 @@
 <template>
   <view class="product-card" @click="emit('click', product)">
     <image
-      :src="product.coverImage || '/static/logo.svg'"
+      :src="coverSrc"
       class="cover"
       mode="aspectFill"
     />
@@ -11,12 +11,17 @@
 
 <script setup>
 import { computed } from 'vue'
+import { resolveImageUrl } from '@/utils/media'
 
 const props = defineProps({
   product: { type: Object, required: true },
 })
 
 const emit = defineEmits(['click'])
+
+const coverSrc = computed(() =>
+  resolveImageUrl(props.product.coverImage, '/static/logo.svg')
+)
 
 const displayName = computed(() => {
   const { code = '', name = '' } = props.product

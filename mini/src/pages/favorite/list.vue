@@ -2,7 +2,7 @@
   <view class="page">
     <view v-for="p in list" :key="p.productId" class="card">
       <view class="card-main" @click="goDetail(p.id)">
-        <image :src="p.coverImage" class="thumb" mode="aspectFill" />
+        <image :src="resolveImageUrl(p.coverImage, '/static/logo.svg')" class="thumb" mode="aspectFill" />
         <view class="info">
           <text class="name">{{ p.code }}{{ p.name }}</text>
           <text class="cat">{{ p.category?.name }}</text>
@@ -22,6 +22,7 @@ import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getFavorites, removeFavorite } from '@/api/favorite'
 import { ensureLogin } from '@/utils/request'
+import { resolveImageUrl } from '@/utils/media'
 
 const list = ref([])
 const loading = ref(false)
