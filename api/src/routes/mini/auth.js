@@ -15,6 +15,7 @@ router.post('/wechat', async (req, res, next) => {
     }
 
     const session = await code2Session(code);
+    // 静默登录仅传 code；头像昵称通过 PUT /profile 更新
     const profileData = {};
     if (nickname !== undefined) {
       const name = nickname?.trim();

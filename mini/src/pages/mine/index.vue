@@ -1,19 +1,29 @@
 <template>
   <view class="page">
-    <view class="user-section" @click="goProfile">
-      <view v-if="userStore.isLoggedIn" class="user-info">
-        <image
-          class="avatar"
-          :src="userStore.user?.avatar || defaultAvatar"
-          mode="aspectFill"
-        />
-        <view class="user-text">
-          <text class="nickname">{{ userStore.displayName }}</text>
-          <text v-if="maskedPhone" class="phone">{{ maskedPhone }}</text>
+    <view class="user-section">
+      <view v-if="userStore.hasWechatProfile" class="user-info">
+        <view class="user-main">
+          <image
+            v-if="userStore.mineAvatar"
+            class="avatar"
+            :src="userStore.mineAvatar"
+            mode="aspectFill"
+          />
+          <view v-else class="avatar avatar--empty" />
+          <text class="nickname">{{ userStore.mineNickname }}</text>
         </view>
+        <button
+          class="update-btn"
+          :loading="authorizing"
+          @click.stop="doAuthorize"
+        >
+          更新
+        </button>
       </view>
       <view v-else class="login-wrap">
-        <button class="login-btn" @click.stop="doLogin">微信登录</button>
+        <button class="login-btn" :loading="authorizing" @click.stop="doAuthorize">
+          微信登录
+        </button>
       </view>
     </view>
 
@@ -56,38 +66,32 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { ensureLogin } from '@/utils/request'
-import { maskPhone } from '@/utils/maskPhone'
 import { chooseAndImportAddress } from '@/utils/wechatAddress'
-import { requestWechatProfile } from '@/utils/wechatProfile'
-import { TECH_SUPPORT_TEXT, DEFAULT_AVATAR } from '@/config'
+import { TECH_SUPPORT_TEXT } from '@/config'
 import MineCell from '@/components/MineCell.vue'
 
 const userStore = useUserStore()
-const defaultAvatar = DEFAULT_AVATAR
+const authorizing = ref(false)
 
-const maskedPhone = computed(() => maskPhone(userStore.user?.phone))
-
-async function doLogin() {
-  const profile = await requestWechatProfile()
-  await userStore.login(profile)
-  uni.showToast({ title: '登录成功' })
+async function doAuthorize() {
+  if (!userStore.isLoggedIn) return
+  authorizing.value = true
+  try {
+    await userStore.authorizeProfile()
+  } catch {
+    /* request / getUserProfile 已提示 */
+  } finally {
+    authorizing.value = false
+  }
 }
 
 function go(url) {
   if (!ensureLogin()) return
   uni.navigateTo({ url })
-}
-
-function goProfile() {
-  if (!userStore.isLoggedIn) {
-    doLogin()
-    return
-  }
-  uni.navigateTo({ url: '/pages/profile/edit' })
 }
 
 async function pickAddress() {
@@ -101,12 +105,17 @@ async function pickAddress() {
 }
 
 onShow(async () => {
-  if (userStore.isLoggedIn) {
+  if (!userStore.isLoggedIn) {
     try {
-      await userStore.fetchProfile()
+      await userStore.silentLogin()
     } catch {
-      /* ignore */
+      return
     }
+  }
+  try {
+    await userStore.fetchProfile()
+  } catch {
+    /* ignore */
   }
 })
 </script>
@@ -124,28 +133,47 @@ onShow(async () => {
 .user-info {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+}
+.user-main {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 .avatar {
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
-  background: #f0f0f0;
   flex-shrink: 0;
 }
-.user-text {
-  margin-left: 28rpx;
+.avatar--empty {
+  background: #f0f0f0;
 }
 .nickname {
+  margin-left: 28rpx;
   font-size: 36rpx;
   font-weight: 600;
   color: #2d2a3e;
-  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.phone {
-  font-size: 26rpx;
-  color: #999;
-  margin-top: 8rpx;
-  display: block;
+.update-btn {
+  flex-shrink: 0;
+  margin: 0 0 0 24rpx;
+  padding: 0 24rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  font-size: 28rpx;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+}
+.update-btn::after {
+  border: none;
 }
 .login-wrap {
   display: flex;

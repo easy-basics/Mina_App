@@ -1,7 +1,7 @@
 <template>
   <view class="page">
     <view v-if="!userStore.isLoggedIn" class="login-tip">
-      <button class="btn-primary" @click="doLogin">微信登录后查看购物车</button>
+      <button class="btn-primary" @click="doLogin">登录中，点击重试</button>
     </view>
     <view v-else>
       <view v-for="item in items" :key="item.id" class="cart-item">
@@ -90,7 +90,9 @@ async function loadProductStores() {
 }
 
 async function doLogin() {
-  await userStore.login()
+  if (!userStore.isLoggedIn) {
+    await userStore.silentLogin()
+  }
   await cartStore.refresh()
   await loadProductStores()
 }

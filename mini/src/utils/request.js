@@ -1,8 +1,18 @@
 import { API_BASE, DEFAULT_AVATAR } from '@/config'
-import { generateRandomNickname } from '@/utils/randomNickname'
 
 function getToken() {
   return uni.getStorageSync('token') || ''
+}
+
+function persistAuth(token, user) {
+  if (token !== undefined) {
+    if (token) uni.setStorageSync('token', token)
+    else uni.removeStorageSync('token')
+  }
+  if (user !== undefined) {
+    if (user) uni.setStorageSync('user', JSON.stringify(user))
+    else uni.removeStorageSync('user')
+  }
 }
 
 export function request(options) {
@@ -25,8 +35,7 @@ export function request(options) {
         const body = res.data
         if (body.code !== 0) {
           if (res.statusCode === 401 || body.code === 401) {
-            uni.removeStorageSync('token')
-            uni.removeStorageSync('user')
+            persistAuth('', null)
             uni.showToast({ title: body.message || '请重新登录', icon: 'none' })
           } else {
             uni.showToast({ title: body.message || '请求失败', icon: 'none' })
@@ -44,26 +53,8 @@ export function request(options) {
   })
 }
 
-export function ensureLogin() {
-  if (!getToken()) {
-    uni.showModal({
-      title: '提示',
-      content: '请先登录',
-      success(res) {
-        if (res.confirm) {
-          loginWithWechat()
-        }
-      },
-    })
-    return false
-  }
-  return true
-}
-
-export async function loginWithWechat(profile) {
-  const nickname = profile?.nickname ?? generateRandomNickname()
-  const avatar = profile?.avatar ?? null
-
+/** 启动时静默登录：wx.login → code → token，不涉及头像昵称 */
+export function silentLoginWithWechat() {
   return new Promise((resolve, reject) => {
     uni.login({
       provider: 'weixin',
@@ -72,11 +63,10 @@ export async function loginWithWechat(profile) {
           const body = await request({
             url: '/mini/auth/wechat',
             method: 'POST',
-            data: { code: loginRes.code, nickname, avatar },
+            data: { code: loginRes.code },
             auth: false,
           })
-          uni.setStorageSync('token', body.data.token)
-          uni.setStorageSync('user', JSON.stringify(body.data.user))
+          persistAuth(body.data.token, body.data.user)
           resolve(body.data)
         } catch (e) {
           reject(e)
@@ -87,4 +77,12 @@ export async function loginWithWechat(profile) {
   })
 }
 
-export { DEFAULT_AVATAR }
+export function ensureLogin() {
+  if (!getToken()) {
+    uni.showToast({ title: '正在登录，请稍后重试', icon: 'none' })
+    return false
+  }
+  return true
+}
+
+export { DEFAULT_AVATAR, getToken, persistAuth }
