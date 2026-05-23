@@ -3,6 +3,7 @@ node_modules/
 admin/.env.local
 admin/.env.*.local
 api/.env
+.cursor/mcp.json
 api/LOCAL_CREDENTIALS.md
 api/uploads/*
 !api/uploads/.gitkeep
