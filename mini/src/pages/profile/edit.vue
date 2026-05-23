@@ -22,12 +22,18 @@
           />
           <!-- #ifdef MP-WEIXIN -->
           <button
+            id="privacy-agree-btn"
             class="phone-btn"
-            open-type="getPhoneNumber"
+            plain
+            open-type="getPhoneNumber|agreePrivacyAuthorization"
             @getphonenumber="onGetPhone"
+            @agreeprivacyauthorization="onAgreePrivacy"
           >
             一键填写
           </button>
+          <!-- #endif -->
+          <!-- #ifndef MP-WEIXIN -->
+          <text class="phone-hint">请在微信小程序中使用</text>
           <!-- #endif -->
         </view>
       </view>
@@ -125,19 +131,38 @@ async function save() {
 }
 
 async function onGetPhone(e) {
-  if (e.detail.errMsg !== 'getPhoneNumber:ok' || !e.detail.code) {
+  const detail = e.detail || {}
+  if (detail.errMsg === 'getPhoneNumber:ok' && detail.code) {
+    try {
+      const res = await bindPhone(detail.code)
+      form.phone = res.data.phone
+      if (res.data.user) {
+        userStore.patchUser(res.data.user)
+      }
+      dirty.value = true
+    } catch {
+      /* request.js handles toast */
+    }
     return
   }
-  try {
-    const res = await bindPhone(e.detail.code)
-    form.phone = res.data.phone
-    if (res.data.user) {
-      userStore.patchUser(res.data.user)
-    }
-    dirty.value = true
-    uni.showToast({ title: '已填入手机号' })
-  } catch {
-    /* request.js handles toast */
+
+  const errMsg = detail.errMsg || ''
+  if (errMsg.includes('deny') || errMsg.includes('cancel')) {
+    uni.showToast({ title: '已取消授权', icon: 'none' })
+    return
+  }
+  if (errMsg.includes('privacy')) {
+    uni.showToast({ title: '请先同意隐私保护指引', icon: 'none' })
+    return
+  }
+  if (errMsg && errMsg !== 'getPhoneNumber:ok') {
+    uni.showToast({ title: '获取手机号失败', icon: 'none' })
+  }
+}
+
+function onAgreePrivacy(e) {
+  if (e.detail?.errMsg !== 'agreePrivacyAuthorization:ok') {
+    uni.showToast({ title: '需同意隐私协议后才能一键填写', icon: 'none' })
   }
 }
 
@@ -222,6 +247,11 @@ onMounted(() => {
 }
 .phone-btn::after {
   border: none;
+}
+.phone-hint {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #999;
 }
 .save-btn {
   margin: 48rpx 32rpx 24rpx;

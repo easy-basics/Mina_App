@@ -2,8 +2,11 @@
 import { onLaunch } from '@dcloudio/uni-app'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
+import { setupWechatPrivacyListener } from '@/utils/wechatPrivacy'
 
 onLaunch(async () => {
+  setupWechatPrivacyListener()
+
   const userStore = useUserStore()
   const cartStore = useCartStore()
 
