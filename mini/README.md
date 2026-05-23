@@ -18,13 +18,16 @@ npm run dev
 
 ## 配置
 
-编辑 `src/config.js`（微信开发者工具请用 `127.0.0.1`，不要用 `localhost`）：
+API 地址通过环境变量区分（与 admin 一致）：
 
-```js
-export const API_BASE = 'http://127.0.0.1:3000/api'
-```
+| 命令 | 环境文件 | 默认 API |
+|------|----------|----------|
+| `npm run dev` | `.env.development` | `http://127.0.0.1:3000/api` |
+| `npm run build` | `.env.production` | `https://api.mina.bigdeng.com/api` |
 
-真机调试请改为电脑局域网 IP，例如 `http://192.168.1.10:3000/api`，并保证 `api/.env` 中：
+本地覆盖可复制 `mini/.env.example` 为 `.env.local`（见 Vite 文档）。
+
+真机调试请将 `.env.development` 改为电脑局域网 IP，例如 `http://192.168.1.10:3000/api`，并保证 `api/.env` 中：
 
 ```env
 API_PUBLIC_URL=http://192.168.1.10:3000
