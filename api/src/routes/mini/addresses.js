@@ -18,6 +18,64 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+router.post('/import', async (req, res, next) => {
+  try {
+    const { name, phone, province, city, district, detail } = req.body;
+    if (!name?.trim() || !phone?.trim() || !province || !city || !district || !detail?.trim()) {
+      return fail(res, '请填写完整地址信息');
+    }
+
+    const normalized = {
+      name: name.trim(),
+      phone: phone.trim(),
+      province: province.trim(),
+      city: city.trim(),
+      district: district.trim(),
+      detail: detail.trim(),
+    };
+
+    const existing = await prisma.userAddress.findFirst({
+      where: {
+        userId: req.user.id,
+        name: normalized.name,
+        phone: normalized.phone,
+        province: normalized.province,
+        city: normalized.city,
+        district: normalized.district,
+        detail: normalized.detail,
+      },
+    });
+
+    if (existing) {
+      return success(res, existing, '地址已存在');
+    }
+
+    const hasDefault = await prisma.userAddress.count({
+      where: { userId: req.user.id, isDefault: true },
+    });
+    const isDefault = hasDefault === 0;
+
+    if (isDefault) {
+      await prisma.userAddress.updateMany({
+        where: { userId: req.user.id },
+        data: { isDefault: false },
+      });
+    }
+
+    const address = await prisma.userAddress.create({
+      data: {
+        userId: req.user.id,
+        ...normalized,
+        isDefault,
+      },
+    });
+
+    return success(res, address, '同步成功');
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.post('/', async (req, res, next) => {
   try {
     const { name, phone, province, city, district, detail, isDefault } = req.body;

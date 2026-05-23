@@ -145,14 +145,17 @@ model ProductStore {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  openid    String   @unique @db.VarChar(64)
-  unionid   String?  @db.VarChar(64)
-  nickname  String?  @db.VarChar(64)
-  avatar    String?  @db.VarChar(512)
-  phone     String?  @db.VarChar(32)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              Int      @id @default(autoincrement())
+  openid          String   @unique @db.VarChar(64)
+  unionid         String?  @db.VarChar(64)
+  nickname        String?  @db.VarChar(64)
+  avatar          String?  @db.VarChar(512)
+  phone           String?  @db.VarChar(32)
+  realName        String?  @map("real_name") @db.VarChar(64)
+  companyName     String?  @map("company_name") @db.VarChar(128)
+  companyAddress  String?  @map("company_address") @db.VarChar(255)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   addresses UserAddress[]
   favorites Favorite[]
