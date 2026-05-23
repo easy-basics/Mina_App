@@ -11,6 +11,18 @@ function errorHandler(err, req, res, next) {
     return fail(res, getConnectionErrorMessage(), 503, 503);
   }
 
+  // 数据库 schema 与 Prisma Client 不一致（常见于未 migrate / 未 generate）
+  const prismaMsg = err.message || '';
+  if (
+    err.code === 'P2022'
+    || prismaMsg.includes('Unknown column')
+    || prismaMsg.includes('does not exist in the current database')
+    || (prismaMsg.includes('Unknown field') && prismaMsg.includes('User'))
+  ) {
+    console.error('[schema] 请在服务器执行: npx prisma migrate deploy && npx prisma generate');
+    return fail(res, '数据库未同步，请联系管理员执行 migrate deploy', 503, 503);
+  }
+
   if (err.name === 'MulterError') {
     const multerMessages = {
       LIMIT_FILE_SIZE: '文件过大',

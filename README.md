@@ -119,7 +119,10 @@ seed 后可用（以 `api/.env` 为准）：
 
 ```bash
 cd admin && pnpm build
-cd api && npm start
+cd api
+npm install          # 含 postinstall → prisma generate
+npx prisma migrate deploy
+npm start
 ```
 
 Nginx 建议：静态资源托管 `admin/dist`，`/api` 与 `/uploads` 反代到 Node 服务。

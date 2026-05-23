@@ -12,7 +12,11 @@ function miniUserMiddleware(req, res, next) {
     if (payload.role !== 'user') {
       return fail(res, '无效的登录状态', 401, 401);
     }
-    req.user = { id: payload.sub, openid: payload.openid };
+    const id = Number(payload.sub);
+    if (!Number.isInteger(id) || id <= 0) {
+      return fail(res, '登录已过期，请重新登录', 401, 401);
+    }
+    req.user = { id, openid: payload.openid };
     return next();
   } catch {
     return fail(res, '登录已过期，请重新登录', 401, 401);

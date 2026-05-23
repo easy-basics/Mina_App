@@ -65,7 +65,6 @@ const userSelect = {
   realName: true,
   companyName: true,
   companyAddress: true,
-  openid: true,
 };
 
 function formatUser(user) {
