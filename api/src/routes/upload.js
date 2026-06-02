@@ -28,7 +28,14 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter(req, file, cb) {
-    if (!ALLOWED_MIME.has(file.mimetype)) {
+    const mime = file.mimetype || ''
+    const ext = path.extname(file.originalname || '').toLowerCase()
+    const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
+    const okMime =
+      ALLOWED_MIME.has(mime) ||
+      mime === 'application/octet-stream' ||
+      imageExts.includes(ext)
+    if (!okMime) {
       return cb(new Error('仅支持 jpg、png、webp、gif 图片'));
     }
     cb(null, true);

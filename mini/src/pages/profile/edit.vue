@@ -1,5 +1,15 @@
 <template>
   <view class="page">
+    <!-- #ifdef MP-WEIXIN -->
+    <view v-if="needPrivacyTip" class="privacy-tip">
+      <text class="privacy-tip-text">
+        使用「一键填写」前需同意
+      </text>
+      <text class="privacy-link" @click="openPrivacyContract">《用户隐私保护指引》</text>
+      <text class="privacy-tip-text">，请点击右侧按钮并在微信弹窗中选择同意。</text>
+    </view>
+    <!-- #endif -->
+
     <view class="form-card">
       <view class="form-row">
         <text class="label"><text class="required">*</text>姓名</text>
@@ -58,7 +68,6 @@
     </view>
 
     <button class="save-btn" :loading="saving" @click="save">保存</button>
-    <button v-if="userStore.isLoggedIn" class="logout-btn" @click="logout">退出登录</button>
   </view>
 </template>
 
@@ -68,11 +77,17 @@ import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { updateProfile, bindPhone } from '@/api/auth'
 import { ensureLogin } from '@/utils/request'
-import { onAgreePrivacyAuthorization } from '@/utils/wechatPrivacy'
+import {
+  onAgreePrivacyAuthorization,
+  getPrivacyNeedAuthorization,
+  openPrivacyContract,
+  showPrivacyNotDeclaredHelp,
+} from '@/utils/wechatPrivacy'
 
 const userStore = useUserStore()
 const saving = ref(false)
 const dirty = ref(false)
+const needPrivacyTip = ref(false)
 
 const form = reactive({
   realName: '',
@@ -94,6 +109,7 @@ async function load() {
   if (!ensureLogin()) return
   await userStore.fetchProfile()
   syncForm()
+  needPrivacyTip.value = await getPrivacyNeedAuthorization()
 }
 
 function validate() {
@@ -152,8 +168,23 @@ async function onGetPhone(e) {
     uni.showToast({ title: '已取消授权', icon: 'none' })
     return
   }
+  if (errMsg.includes('not declared')) {
+    needPrivacyTip.value = true
+    showPrivacyNotDeclaredHelp('一键填写手机号')
+    return
+  }
   if (errMsg.includes('privacy')) {
-    uni.showToast({ title: '请先同意隐私保护指引', icon: 'none' })
+    needPrivacyTip.value = true
+    uni.showModal({
+      title: '提示',
+      content:
+        '请先同意《用户隐私保护指引》：再次点击「一键填写」，在微信弹出的窗口中选择同意；也可先点击下方链接查看指引全文。',
+      confirmText: '查看指引',
+      cancelText: '知道了',
+      success: (res) => {
+        if (res.confirm) openPrivacyContract()
+      },
+    })
     return
   }
   if (errMsg && errMsg !== 'getPhoneNumber:ok') {
@@ -163,20 +194,9 @@ async function onGetPhone(e) {
 
 function onAgreePrivacy(e) {
   onAgreePrivacyAuthorization(e)
-}
-
-function logout() {
-  uni.showModal({
-    title: '提示',
-    content: '确定退出登录？',
-    success(res) {
-      if (res.confirm) {
-        userStore.logout()
-        uni.showToast({ title: '已退出' })
-        uni.navigateBack()
-      }
-    },
-  })
+  if (e.detail?.errMsg === 'agreePrivacyAuthorization:ok') {
+    needPrivacyTip.value = false
+  }
 }
 
 onShow(load)
@@ -189,6 +209,21 @@ onMounted(() => {
 .page {
   min-height: 100vh;
   padding-bottom: 48rpx;
+}
+.privacy-tip {
+  margin: 16rpx 24rpx 0;
+  padding: 20rpx 24rpx;
+  background: #fff8f0;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #666;
+}
+.privacy-tip-text {
+  color: #666;
+}
+.privacy-link {
+  color: var(--color-primary);
 }
 .form-card {
   background: #fff;
@@ -253,17 +288,10 @@ onMounted(() => {
   color: #999;
 }
 .save-btn {
-  margin: 48rpx 32rpx 24rpx;
+  margin: 48rpx 32rpx;
   background: var(--color-primary);
   color: #fff;
   border-radius: 12rpx;
   font-size: 32rpx;
-}
-.logout-btn {
-  margin: 0 32rpx;
-  background: #fff;
-  color: #999;
-  border-radius: 12rpx;
-  font-size: 28rpx;
 }
 </style>

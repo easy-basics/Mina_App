@@ -13,10 +13,6 @@
         <text class="price-sample">板布价格 ¥ {{ product.minPrice ?? '-' }}元/米</text>
         <text class="price-bulk">大货价格 面议</text>
       </view>
-      <view class="actions">
-        <text class="action" @click="toggleFavorite">{{ product.favorited ? '已收藏' : '收藏' }}</text>
-        <button open-type="share" class="action share-btn">分享</button>
-      </view>
     </view>
 
     <view class="tabs">
@@ -42,22 +38,31 @@
       </view>
     </view>
 
-    <view class="footer-bar">
-      <view class="footer-icon" @click="goStore">门店</view>
-      <view class="footer-icon cart" @click="goCart">
-        购物车
-        <text v-if="cartCount > 0" class="badge">{{ cartCount }}</text>
-      </view>
-      <button class="btn-cart" @click="openAddCart">加购</button>
-      <button class="btn-sample" @click="openOrder(ORDER_TYPES.SAMPLE)">板布下单</button>
-      <button class="btn-bulk" @click="openOrder(ORDER_TYPES.BULK)">大货下单</button>
+    <view class="float-cart" @click="goCart">
+      <image class="float-cart-icon" :src="shoppingCartIcon" mode="aspectFit" />
+      <text v-if="cartCount > 0" class="float-badge">{{ cartCount > 99 ? '99+' : cartCount }}</text>
     </view>
 
+    <view class="footer-bar">
+      <view
+        class="footer-round-btn"
+        :class="{ favorited: product.favorited }"
+        @click="toggleFavorite"
+      >
+        <image class="footer-icon" :src="favoriteIcon" mode="aspectFit" />
+      </view>
+      <button open-type="share" class="footer-round-btn footer-share-btn">
+        <image class="footer-icon" :src="shareIcon" mode="aspectFit" />
+      </button>
+      <button class="btn-order" @click="openOrderTypePicker">去下单</button>
+    </view>
+
+    <OrderTypePicker v-model:visible="typePickerVisible" @select="onPickOrderType" />
     <OrderSheet
       v-model:visible="sheetVisible"
       :product="product"
       :order-type="sheetOrderType"
-      :mode="sheetMode"
+      mode="order"
       @success="onOrderSuccess"
     />
   </view>
@@ -73,12 +78,16 @@ import { ensureLogin } from '@/utils/request'
 import { resolveImageUrl } from '@/utils/media'
 import { useCartStore } from '@/stores/cart'
 import OrderSheet from '@/components/OrderSheet.vue'
+import OrderTypePicker from '@/components/OrderTypePicker.vue'
+import favoriteIcon from '../../../assets/svg/favorite.svg'
+import shareIcon from '../../../assets/svg/share.svg'
+import shoppingCartIcon from '../../../assets/svg/shoppingCart.svg'
 
 const product = ref(null)
 const tab = ref('detail')
+const typePickerVisible = ref(false)
 const sheetVisible = ref(false)
 const sheetOrderType = ref(ORDER_TYPES.SAMPLE)
-const sheetMode = ref('order')
 const productId = ref(0)
 const cartStore = useCartStore()
 
@@ -121,31 +130,18 @@ async function toggleFavorite() {
   }
 }
 
-function openOrder(type) {
+function openOrderTypePicker() {
   if (!ensureLogin()) return
+  typePickerVisible.value = true
+}
+
+function onPickOrderType(type) {
   sheetOrderType.value = type
-  sheetMode.value = 'order'
   sheetVisible.value = true
 }
 
 function goCart() {
   uni.navigateTo({ url: '/pages/cart/index' })
-}
-
-function goStore() {
-  const names = product.value?.stores?.map((s) => s.name).join('、')
-  uni.showModal({
-    title: '可售门店',
-    content: names || '暂无门店',
-    showCancel: false,
-  })
-}
-
-function openAddCart() {
-  if (!ensureLogin()) return
-  sheetOrderType.value = ORDER_TYPES.SAMPLE
-  sheetMode.value = 'cart'
-  sheetVisible.value = true
 }
 
 function onOrderSuccess() {
@@ -160,7 +156,7 @@ onMounted(() => {
 
 <style scoped>
 .page {
-  padding-bottom: 120rpx;
+  padding-bottom: 160rpx;
 }
 .banner {
   height: 560rpx;
@@ -191,20 +187,6 @@ onMounted(() => {
   font-size: 28rpx;
   margin-top: 8rpx;
   display: block;
-}
-.actions {
-  display: flex;
-  gap: 32rpx;
-  margin-top: 16rpx;
-  font-size: 26rpx;
-  color: #666;
-}
-.share-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 26rpx;
-  line-height: inherit;
 }
 .tabs {
   display: flex;
@@ -251,6 +233,39 @@ onMounted(() => {
   padding: 24rpx 16rpx;
   font-size: 26rpx;
 }
+.float-cart {
+  position: fixed;
+  right: 24rpx;
+  bottom: calc(140rpx + env(safe-area-inset-bottom));
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+}
+.float-cart-icon {
+  width: 44rpx;
+  height: 44rpx;
+}
+.float-badge {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  padding: 0 8rpx;
+  background: #e53935;
+  color: #fff;
+  font-size: 20rpx;
+  text-align: center;
+  border-radius: 16rpx;
+  box-sizing: border-box;
+}
 .footer-bar {
   position: fixed;
   left: 0;
@@ -258,52 +273,52 @@ onMounted(() => {
   bottom: 0;
   display: flex;
   align-items: center;
+  gap: 20rpx;
   background: #fff;
-  padding: 12rpx 16rpx;
-  padding-bottom: calc(12rpx + env(safe-area-inset-bottom));
+  padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+.footer-round-btn {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  line-height: 1;
+}
+.footer-round-btn.favorited {
+  background: #ffb300;
+}
+.footer-share-btn::after {
+  border: none;
 }
 .footer-icon {
-  font-size: 22rpx;
-  color: #666;
-  padding: 0 12rpx;
-  position: relative;
+  width: 40rpx;
+  height: 40rpx;
 }
-.badge {
-  position: absolute;
-  top: -8rpx;
-  right: 0;
-  background: #e53935;
-  color: #fff;
-  font-size: 18rpx;
-  min-width: 28rpx;
-  height: 28rpx;
-  line-height: 28rpx;
-  text-align: center;
-  border-radius: 14rpx;
-}
-.btn-cart,
-.btn-sample,
-.btn-bulk {
+.btn-order {
   flex: 1;
-  margin-left: 8rpx;
-  font-size: 26rpx;
-  color: #fff;
-  border: none;
-  border-radius: 8rpx;
-  padding: 0;
-  line-height: 72rpx;
-}
-.btn-cart {
+  height: 88rpx;
+  line-height: 88rpx;
   background: var(--color-primary);
-  max-width: 100rpx;
-  flex: 0 0 100rpx;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 500;
+  border: none;
+  border-radius: 999rpx;
+  margin: 0;
+  padding: 0;
 }
-.btn-sample {
-  background: #e53935;
-}
-.btn-bulk {
-  background: #43a047;
+.btn-order::after {
+  border: none;
 }
 .empty {
   text-align: center;

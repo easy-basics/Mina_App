@@ -1,21 +1,30 @@
 <template>
   <view v-if="visible" class="mask" @click="close">
     <view class="sheet" @click.stop>
-      <view class="sheet-title">请选择门店</view>
+      <view class="sheet-header">
+        <text class="sheet-title">请选择门店</text>
+        <text class="sheet-close" @click="close">×</text>
+      </view>
       <scroll-view scroll-x class="store-row">
         <view
           v-for="s in stores"
           :key="s.id"
-          class="store-chip"
-          :class="{ active: s.id === selectedStoreId }"
-          @click="selectedStoreId = s.id"
+          class="store-chip-wrap"
         >
-          {{ s.name }}
+          <text v-if="isLastSelectedStore(s.id)" class="last-badge">上次选中</text>
+          <view
+            class="store-chip"
+            :class="{ active: s.id === selectedStoreId }"
+            @click="selectStore(s)"
+          >
+            {{ s.name }}
+          </view>
         </view>
       </scroll-view>
 
-      <view class="section-title">板布</view>
+      <view class="section-title">{{ sectionLabel }}</view>
       <view class="search-row">
+        <text class="search-icon">🔍</text>
         <input v-model="colorKeyword" class="color-search" placeholder="搜索颜色" />
       </view>
       <scroll-view scroll-y class="sku-list">
@@ -92,6 +101,10 @@ const submitting = ref(false)
 const cartStore = useCartStore()
 const sessionStore = useSessionStore()
 
+const sectionLabel = computed(() =>
+  props.orderType === ORDER_TYPES.SAMPLE ? '板布' : '大货'
+)
+
 const selectedAddress = computed(() =>
   addresses.value.find((a) => a.id === selectedAddressId.value)
 )
@@ -103,6 +116,15 @@ const filteredSkus = computed(() => {
   return list.filter((s) => s.specName.toLowerCase().includes(kw))
 })
 
+function isLastSelectedStore(storeId) {
+  return sessionStore.selectedStore?.id === storeId
+}
+
+function selectStore(store) {
+  selectedStoreId.value = store.id
+  sessionStore.setStore(store)
+}
+
 watch(
   () => props.visible,
   async (v) => {
@@ -111,6 +133,10 @@ watch(
       const sessionId = sessionStore.selectedStore?.id
       const inList = stores.value.some((s) => s.id === sessionId)
       selectedStoreId.value = inList ? sessionId : stores.value[0]?.id || null
+      if (selectedStoreId.value) {
+        const current = stores.value.find((s) => s.id === selectedStoreId.value)
+        if (current) sessionStore.setStore(current)
+      }
       quantities.value = {}
       colorKeyword.value = ''
       deliveryType.value = 'pickup'
@@ -255,7 +281,7 @@ async function submit() {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 1001;
   display: flex;
   align-items: flex-end;
 }
@@ -265,24 +291,56 @@ async function submit() {
   background: #fff;
   border-radius: 24rpx 24rpx 0 0;
   padding: 24rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+}
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
 }
 .sheet-title {
   font-size: 30rpx;
   font-weight: 600;
-  margin-bottom: 16rpx;
+}
+.sheet-close {
+  font-size: 44rpx;
+  color: #999;
+  line-height: 1;
+  padding: 0 8rpx;
 }
 .store-row {
   white-space: nowrap;
   margin-bottom: 24rpx;
 }
+.store-chip-wrap {
+  display: inline-block;
+  position: relative;
+  margin-right: 16rpx;
+  vertical-align: top;
+  padding-top: 28rpx;
+}
+.last-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20rpx;
+  color: #fff;
+  background: #ff9800;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+  white-space: nowrap;
+  z-index: 1;
+}
 .store-chip {
   display: inline-block;
   padding: 12rpx 24rpx;
-  margin-right: 16rpx;
   border: 1rpx solid #ddd;
   border-radius: 32rpx;
   font-size: 26rpx;
+  color: #333;
 }
 .store-chip.active {
   border-color: #e53935;
@@ -290,14 +348,27 @@ async function submit() {
 }
 .section-title {
   font-size: 28rpx;
+  font-weight: 600;
   margin-bottom: 12rpx;
 }
-.color-search {
+.search-row {
+  display: flex;
+  align-items: center;
   background: #f5f5f5;
   border-radius: 32rpx;
-  padding: 12rpx 20rpx;
-  font-size: 26rpx;
+  padding: 0 20rpx;
   margin-bottom: 16rpx;
+}
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+  flex-shrink: 0;
+}
+.color-search {
+  flex: 1;
+  background: transparent;
+  padding: 16rpx 0;
+  font-size: 26rpx;
 }
 .sku-list {
   max-height: 400rpx;
@@ -332,7 +403,7 @@ async function submit() {
 }
 .price {
   font-size: 24rpx;
-  color: #e53935;
+  color: #666;
   min-width: 120rpx;
   text-align: right;
 }
@@ -365,9 +436,17 @@ async function submit() {
   margin-bottom: 12rpx;
 }
 .confirm-btn {
+  width: 100%;
   background: #e53935;
   color: #fff;
-  border-radius: 8rpx;
+  border: none;
+  border-radius: 999rpx;
   margin-top: 16rpx;
+  line-height: 88rpx;
+  height: 88rpx;
+  font-size: 32rpx;
+}
+.confirm-btn::after {
+  border: none;
 }
 </style>

@@ -3,41 +3,46 @@
     <view class="user-section">
       <view v-if="userStore.hasWechatAvatar" class="user-info">
         <view class="user-main">
+          <!-- #ifdef MP-WEIXIN -->
+          <button
+            class="avatar-picker"
+            open-type="chooseAvatar"
+            hover-class="none"
+            :disabled="authorizing"
+            @chooseavatar="onChooseAvatar"
+          >
+            <image class="avatar" :src="avatarSrc" mode="aspectFill" />
+          </button>
+          <!-- #endif -->
+          <!-- #ifndef MP-WEIXIN -->
           <image class="avatar" :src="avatarSrc" mode="aspectFill" />
+          <!-- #endif -->
+          <text
+            v-if="userStore.hasRegisteredProfile"
+            class="real-name"
+          >{{ userStore.mineRealName }}</text>
         </view>
-        <!-- #ifdef MP-WEIXIN -->
-        <button
-          id="privacy-avatar-btn"
-          class="update-btn"
-          open-type="chooseAvatar|agreePrivacyAuthorization"
-          :loading="authorizing"
-          @chooseavatar="onChooseAvatar"
-          @agreeprivacyauthorization="onAgreePrivacy"
-        >
-          更新
-        </button>
-        <!-- #endif -->
-        <!-- #ifndef MP-WEIXIN -->
-        <button class="update-btn" :loading="authorizing" @click="onAvatarUnsupported">
-          更新
-        </button>
-        <!-- #endif -->
+        <text
+          v-if="!userStore.hasRegisteredProfile"
+          class="profile-link"
+          @click="go('/pages/profile/edit')"
+        >个人资料</text>
       </view>
       <view v-else class="login-wrap">
         <!-- #ifdef MP-WEIXIN -->
         <button
-          id="privacy-avatar-btn"
           class="login-btn"
-          open-type="chooseAvatar|agreePrivacyAuthorization"
-          :loading="authorizing"
+          open-type="chooseAvatar"
+          hover-class="none"
+          :disabled="authorizing"
           @chooseavatar="onChooseAvatar"
-          @agreeprivacyauthorization="onAgreePrivacy"
         >
-          微信登录
+          <image class="login-avatar" :src="avatarSrc" mode="aspectFill" />
+          <text class="login-text">{{ authorizing ? '上传中…' : '微信登录' }}</text>
         </button>
         <!-- #endif -->
         <!-- #ifndef MP-WEIXIN -->
-        <button class="login-btn" :loading="authorizing" @click="onAvatarUnsupported">
+        <button class="login-btn" :disabled="authorizing" @click="onAvatarUnsupported">
           微信登录
         </button>
         <!-- #endif -->
@@ -63,15 +68,11 @@
           <view class="icon-profile" />
         </template>
       </MineCell>
-      <MineCell title="联系地址" @click="pickAddress">
+      <MineCell title="管理收货地址" @click="go('/pages/address/list')">
         <template #icon>
           <view class="icon-location" />
         </template>
       </MineCell>
-    </view>
-
-    <view v-if="userStore.isLoggedIn" class="sub-link" @click="go('/pages/address/list')">
-      管理收货地址
     </view>
 
     <view class="footer">
@@ -87,10 +88,12 @@ import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { ensureLogin } from '@/utils/request'
-import { chooseAndImportAddress } from '@/utils/wechatAddress'
 import { resolveImageUrl } from '@/utils/media'
 import { TECH_SUPPORT_TEXT, DEFAULT_AVATAR } from '@/config'
-import { onAgreePrivacyAuthorization } from '@/utils/wechatPrivacy'
+import {
+  getPrivacyNeedAuthorization,
+  showPrivacyNotDeclaredHelp,
+} from '@/utils/wechatPrivacy'
 import MineCell from '@/components/MineCell.vue'
 
 const userStore = useUserStore()
@@ -100,19 +103,33 @@ const avatarSrc = computed(() =>
   resolveImageUrl(userStore.mineAvatar, DEFAULT_AVATAR)
 )
 
-function onAgreePrivacy(e) {
-  onAgreePrivacyAuthorization(e)
-}
-
 function onAvatarUnsupported() {
   uni.showToast({ title: '请在微信小程序中使用', icon: 'none' })
 }
 
 async function onChooseAvatar(e) {
-  const tempPath = e.detail?.avatarUrl
-  if (!tempPath) return
+  const detail = e?.detail || {}
+  const errMsg = detail.errMsg || ''
+
+  if (errMsg && errMsg !== 'chooseAvatar:ok') {
+    if (errMsg.includes('not declared')) {
+      showPrivacyNotDeclaredHelp('选择微信头像')
+      return
+    }
+    if (errMsg.includes('cancel')) return
+    uni.showToast({ title: '选择头像失败', icon: 'none' })
+    return
+  }
+
+  const tempPath = detail.avatarUrl
+  if (!tempPath) {
+    uni.showToast({ title: '未获取到头像，请重试', icon: 'none' })
+    return
+  }
+
   const hadAvatar = userStore.hasWechatAvatar
   authorizing.value = true
+  uni.showLoading({ title: '保存头像', mask: true })
   try {
     await userStore.saveWechatAvatar(tempPath)
     if (!hadAvatar) {
@@ -121,6 +138,7 @@ async function onChooseAvatar(e) {
   } catch {
     /* upload / profile 已提示 */
   } finally {
+    uni.hideLoading()
     authorizing.value = false
   }
 }
@@ -130,14 +148,19 @@ function go(url) {
   uni.navigateTo({ url })
 }
 
-async function pickAddress() {
-  if (!ensureLogin()) return
-  try {
-    await chooseAndImportAddress()
-    uni.showToast({ title: '已同步收货地址' })
-  } catch (e) {
-    if (e?.message === 'cancel') return
+/** 若仍待同意隐私协议，先触发官方授权（手机号/地址已配时通常已同意） */
+async function ensurePrivacyReady() {
+  // #ifdef MP-WEIXIN
+  const need = await getPrivacyNeedAuthorization()
+  if (need && typeof wx !== 'undefined' && wx.requirePrivacyAuthorize) {
+    await new Promise((resolve) => {
+      wx.requirePrivacyAuthorize({
+        success: () => resolve(),
+        fail: () => resolve(),
+      })
+    })
   }
+  // #endif
 }
 
 onShow(async () => {
@@ -153,6 +176,7 @@ onShow(async () => {
   } catch {
     /* ignore */
   }
+  await ensurePrivacyReady()
 })
 </script>
 
@@ -177,43 +201,70 @@ onShow(async () => {
   flex: 1;
   min-width: 0;
 }
+.real-name {
+  margin-left: 28rpx;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #2d2a3e;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-link {
+  flex-shrink: 0;
+  margin-left: 24rpx;
+  font-size: 28rpx;
+  color: var(--color-primary);
+}
+.avatar-picker {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  line-height: 1;
+}
+.avatar-picker::after {
+  border: none;
+}
 .avatar {
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
   flex-shrink: 0;
   background: #f0f0f0;
-}
-.update-btn {
-  flex-shrink: 0;
-  margin: 0 0 0 24rpx;
-  padding: 0 24rpx;
-  height: 56rpx;
-  line-height: 56rpx;
-  font-size: 28rpx;
-  color: var(--color-primary);
-  background: transparent;
-  border: none;
-}
-.update-btn::after {
-  border: none;
+  display: block;
 }
 .login-wrap {
   display: flex;
   justify-content: center;
 }
 .login-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 32rpx 48rpx;
   background: #fff;
-  color: var(--color-primary);
   border: 2rpx solid var(--color-primary);
-  border-radius: 40rpx;
-  padding: 0 64rpx;
-  height: 72rpx;
-  line-height: 72rpx;
-  font-size: 30rpx;
+  border-radius: 24rpx;
 }
 .login-btn::after {
   border: none;
+}
+.login-avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: #f0f0f0;
+  margin-bottom: 20rpx;
+}
+.login-text {
+  font-size: 30rpx;
+  color: var(--color-primary);
+  line-height: 1.4;
 }
 .menu-group {
   background: #fff;
@@ -271,12 +322,6 @@ onShow(async () => {
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   margin-left: 4rpx;
-}
-.sub-link {
-  text-align: center;
-  font-size: 26rpx;
-  color: #999;
-  padding: 16rpx;
 }
 .footer {
   display: flex;

@@ -45,13 +45,22 @@ API_PUBLIC_URL=http://192.168.1.10:3000
 
 未配置 `WECHAT_APPID` 时，API 使用 `WECHAT_DEV_OPENID` 模拟登录（见 `api/.env`）。
 
-「我的」页使用 `open-type="chooseAvatar"` 选择头像。若开发者工具报 `chooseAvatar:fail api scope is not declared in the privacy agreement`，除重新编译小程序外，还必须在 **微信公众平台** 配置隐私指引：
+### 隐私保护指引（errno 112 必看）
 
-1. 登录 [微信公众平台](https://mp.weixin.qq.com/) → **设置** → **服务内容声明** → **用户隐私保护指引**
-2. 点击 **更新**，勾选并说明用途：**收集你选中的照片或视频信息**（头像）或指引中的「头像」相关项；若使用手机号、收货地址，一并声明对应类型
-3. 保存后等待约 **5 分钟** 生效，再在开发者工具 **清除授权数据** 后重试
+`getPhoneNumber:fail api scope is not declared in the privacy agreement` 表示：**后台隐私指引里未声明「手机号」，或未审核通过**。仅保存不够，须审核生效。
 
-代码侧已启用 `__usePrivacyCheck__`，按钮使用 `chooseAvatar|agreePrivacyAuthorization` 与 `App.vue` 中的隐私监听。
+1. [微信公众平台](https://mp.weixin.qq.com/) → **设置** → **服务内容声明** → **用户隐私保护指引** → **更新**
+2. 勾选本小程序实际用到的类型（缺一不可）：
+   - **手机号**（`getPhoneNumber` / 一键填写）
+   - **收集你选中的照片或视频信息**（`chooseAvatar` 头像）
+   - **收货地址**（`chooseAddress`）
+3. 填写用途说明 → **提交**，等待 **审核通过**（常见 5 分钟～1 个工作日）
+4. 若走发版：**管理** → **版本管理** → 提审页的「用户隐私保护设置」也需与代码一致
+5. 微信开发者工具：**清缓存 → 清除授权数据**，重新编译后再点「一键填写」
+
+**限制：** 个人主体小程序不支持 `getPhoneNumber`；须企业认证。开发期可手输手机号，或配置 `WECHAT_DEV_PHONE`（无 AppID 时 API 走 mock）。
+
+代码侧：`__usePrivacyCheck__: true`，按钮为 `getPhoneNumber|agreePrivacyAuthorization` / `chooseAvatar|agreePrivacyAuthorization`。
 
 ## 支付（布版）
 

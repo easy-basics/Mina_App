@@ -9,32 +9,59 @@ export function onAgreePrivacyAuthorization(e) {
   }
 }
 
-/** 微信小程序隐私授权：未响应时 chooseAvatar / getPhoneNumber / chooseAddress 等会报错 */
-export function setupWechatPrivacyListener() {
-  // #ifdef MP-WEIXIN
-  if (typeof wx !== 'undefined' && wx.onNeedPrivacyAuthorization) {
-    wx.onNeedPrivacyAuthorization((resolve, eventInfo) => {
-      const referrer = eventInfo?.referrer || ''
-      const buttonId = referrer.includes('chooseAvatar')
-        ? PRIVACY_BTN_AVATAR
-        : PRIVACY_BTN_PHONE
-      uni.showModal({
-        title: '用户隐私保护提示',
-        content:
-          '请阅读并同意《用户隐私保护指引》，以便使用头像、手机号、收货地址等相关功能。',
-        confirmText: '同意',
-        cancelText: '拒绝',
-        success(res) {
-          resolve({
-            event: res.confirm ? 'agree' : 'disagree',
-            buttonId,
-          })
-        },
-        fail() {
-          resolve({ event: 'disagree' })
-        },
-      })
+/** 是否仍需用户同意《用户隐私保护指引》（后台已配置且用户未同意时为 true） */
+export function getPrivacyNeedAuthorization() {
+  return new Promise((resolve) => {
+    // #ifdef MP-WEIXIN
+    if (typeof wx === 'undefined' || !wx.getPrivacySetting) {
+      resolve(false)
+      return
+    }
+    wx.getPrivacySetting({
+      success: (res) => resolve(!!res.needAuthorization),
+      fail: () => resolve(false),
     })
+    // #endif
+    // #ifndef MP-WEIXIN
+    resolve(false)
+    // #endif
+  })
+}
+
+/** 打开公众平台配置的《用户隐私保护指引》全文 */
+export function openPrivacyContract() {
+  // #ifdef MP-WEIXIN
+  if (typeof wx !== 'undefined' && wx.openPrivacyContract) {
+    wx.openPrivacyContract({})
   }
   // #endif
+}
+
+/** getPhoneNumber / chooseAvatar 报 not declared in privacy agreement (errno 112) */
+export function showPrivacyNotDeclaredHelp(apiName = '该功能') {
+  uni.showModal({
+    title: '隐私指引未生效',
+    content:
+      `${apiName}需要在微信公众平台声明并审核通过：\n` +
+      '1. 设置 → 服务内容声明 → 用户隐私保护指引 → 更新\n' +
+      '2. 勾选「手机号」「收货地址」及「收集你选中的照片或视频信息」（头像）\n' +
+      '3. 保存后等待审核通过（约 5 分钟～1 个工作日）\n' +
+      '4. 开发者工具：清缓存 → 清除授权数据，再重试\n' +
+      '注：个人主体小程序不支持 getPhoneNumber。',
+    confirmText: '查看指引',
+    cancelText: '知道了',
+    success: (res) => {
+      if (res.confirm) openPrivacyContract()
+    },
+  })
+}
+
+/**
+ * 不注册 onNeedPrivacyAuthorization 自定义弹窗。
+ * 自定义 modal 的「同意」无法满足微信对 agreePrivacyAuthorization 按钮的校验，
+ * 会导致 getPhoneNumber / chooseAvatar 仍报 privacy 错误。
+ * 使用官方隐私弹窗 + 页面上 open-type 含 agreePrivacyAuthorization 的按钮即可。
+ */
+export function setupWechatPrivacyListener() {
+  /*  intentionally empty */
 }
