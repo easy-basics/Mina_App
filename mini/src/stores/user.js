@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { silentLoginWithWechat, persistAuth } from '@/utils/request'
 import { getMe, updateProfile } from '@/api/auth'
-import { requestWechatProfile } from '@/utils/wechatProfile'
+import { uploadImage } from '@/api/upload'
 
 function persistUser(user) {
   persistAuth(undefined, user)
@@ -15,11 +15,9 @@ export const useUserStore = defineStore('user', {
   }),
   getters: {
     isLoggedIn: (s) => !!s.token,
-    /** 已保存过头像昵称（含拒绝授权后的随机昵称） */
-    hasWechatProfile: (s) => !!s.user?.nickname,
+    /** 已设置过头像（微信 chooseAvatar 上传后） */
+    hasWechatAvatar: (s) => !!s.user?.avatar,
     displayName: (s) => s.user?.realName || s.user?.nickname || '微信用户',
-    /** 「我的」页用户区：仅展示 nickname，不被 realName 覆盖 */
-    mineNickname: (s) => s.user?.nickname || '',
     mineAvatar: (s) => s.user?.avatar || '',
   },
   actions: {
@@ -39,13 +37,14 @@ export const useUserStore = defineStore('user', {
       persistUser(res.data)
       return res.data
     },
-    /** 获取头像昵称并保存，不做其它动作 */
-    async authorizeProfile() {
-      const profile = await requestWechatProfile()
-      const res = await updateProfile({
-        nickname: profile.nickname,
-        avatar: profile.avatar,
-      })
+    /** 上传微信临时头像并保存 */
+    async saveWechatAvatar(tempFilePath) {
+      if (!tempFilePath) return null
+      if (!this.token) {
+        await this.silentLogin()
+      }
+      const url = await uploadImage(tempFilePath)
+      const res = await updateProfile({ avatar: url })
       this.user = res.data
       persistUser(res.data)
       return res.data

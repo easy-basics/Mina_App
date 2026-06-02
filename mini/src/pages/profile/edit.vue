@@ -68,6 +68,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { updateProfile, bindPhone } from '@/api/auth'
 import { ensureLogin } from '@/utils/request'
+import { onAgreePrivacyAuthorization } from '@/utils/wechatPrivacy'
 
 const userStore = useUserStore()
 const saving = ref(false)
@@ -161,9 +162,7 @@ async function onGetPhone(e) {
 }
 
 function onAgreePrivacy(e) {
-  if (e.detail?.errMsg !== 'agreePrivacyAuthorization:ok') {
-    uni.showToast({ title: '需同意隐私协议后才能一键填写', icon: 'none' })
-  }
+  onAgreePrivacyAuthorization(e)
 }
 
 function logout() {

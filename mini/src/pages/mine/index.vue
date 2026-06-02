@@ -1,29 +1,46 @@
 <template>
   <view class="page">
     <view class="user-section">
-      <view v-if="userStore.hasWechatProfile" class="user-info">
+      <view v-if="userStore.hasWechatAvatar" class="user-info">
         <view class="user-main">
-          <image
-            v-if="userStore.mineAvatar"
-            class="avatar"
-            :src="userStore.mineAvatar"
-            mode="aspectFill"
-          />
-          <view v-else class="avatar avatar--empty" />
-          <text class="nickname">{{ userStore.mineNickname }}</text>
+          <image class="avatar" :src="avatarSrc" mode="aspectFill" />
         </view>
+        <!-- #ifdef MP-WEIXIN -->
         <button
+          id="privacy-avatar-btn"
           class="update-btn"
+          open-type="chooseAvatar|agreePrivacyAuthorization"
           :loading="authorizing"
-          @click.stop="doAuthorize"
+          @chooseavatar="onChooseAvatar"
+          @agreeprivacyauthorization="onAgreePrivacy"
         >
           更新
         </button>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
+        <button class="update-btn" :loading="authorizing" @click="onAvatarUnsupported">
+          更新
+        </button>
+        <!-- #endif -->
       </view>
       <view v-else class="login-wrap">
-        <button class="login-btn" :loading="authorizing" @click.stop="doAuthorize">
+        <!-- #ifdef MP-WEIXIN -->
+        <button
+          id="privacy-avatar-btn"
+          class="login-btn"
+          open-type="chooseAvatar|agreePrivacyAuthorization"
+          :loading="authorizing"
+          @chooseavatar="onChooseAvatar"
+          @agreeprivacyauthorization="onAgreePrivacy"
+        >
           微信登录
         </button>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
+        <button class="login-btn" :loading="authorizing" @click="onAvatarUnsupported">
+          微信登录
+        </button>
+        <!-- #endif -->
       </view>
     </view>
 
@@ -66,24 +83,43 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { ensureLogin } from '@/utils/request'
 import { chooseAndImportAddress } from '@/utils/wechatAddress'
-import { TECH_SUPPORT_TEXT } from '@/config'
+import { resolveImageUrl } from '@/utils/media'
+import { TECH_SUPPORT_TEXT, DEFAULT_AVATAR } from '@/config'
+import { onAgreePrivacyAuthorization } from '@/utils/wechatPrivacy'
 import MineCell from '@/components/MineCell.vue'
 
 const userStore = useUserStore()
 const authorizing = ref(false)
 
-async function doAuthorize() {
-  if (!userStore.isLoggedIn) return
+const avatarSrc = computed(() =>
+  resolveImageUrl(userStore.mineAvatar, DEFAULT_AVATAR)
+)
+
+function onAgreePrivacy(e) {
+  onAgreePrivacyAuthorization(e)
+}
+
+function onAvatarUnsupported() {
+  uni.showToast({ title: '请在微信小程序中使用', icon: 'none' })
+}
+
+async function onChooseAvatar(e) {
+  const tempPath = e.detail?.avatarUrl
+  if (!tempPath) return
+  const hadAvatar = userStore.hasWechatAvatar
   authorizing.value = true
   try {
-    await userStore.authorizeProfile()
+    await userStore.saveWechatAvatar(tempPath)
+    if (!hadAvatar) {
+      uni.showToast({ title: '登录成功' })
+    }
   } catch {
-    /* request / getUserProfile 已提示 */
+    /* upload / profile 已提示 */
   } finally {
     authorizing.value = false
   }
@@ -146,20 +182,7 @@ onShow(async () => {
   height: 120rpx;
   border-radius: 50%;
   flex-shrink: 0;
-}
-.avatar--empty {
   background: #f0f0f0;
-}
-.nickname {
-  margin-left: 28rpx;
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #2d2a3e;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .update-btn {
   flex-shrink: 0;

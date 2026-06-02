@@ -1,4 +1,6 @@
 const express = require('express');
+const miniUserMiddleware = require('../../middleware/miniUser');
+const uploadRoutes = require('../upload');
 
 const authRoutes = require('./auth');
 const catalogRoutes = require('./catalog');
@@ -10,6 +12,7 @@ const payRoutes = require('./pay');
 
 const router = express.Router();
 
+router.use('/upload', miniUserMiddleware, uploadRoutes);
 router.use('/auth', authRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/favorites', favoriteRoutes);

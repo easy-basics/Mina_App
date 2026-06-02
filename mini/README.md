@@ -45,6 +45,14 @@ API_PUBLIC_URL=http://192.168.1.10:3000
 
 未配置 `WECHAT_APPID` 时，API 使用 `WECHAT_DEV_OPENID` 模拟登录（见 `api/.env`）。
 
+「我的」页使用 `open-type="chooseAvatar"` 选择头像。若开发者工具报 `chooseAvatar:fail api scope is not declared in the privacy agreement`，除重新编译小程序外，还必须在 **微信公众平台** 配置隐私指引：
+
+1. 登录 [微信公众平台](https://mp.weixin.qq.com/) → **设置** → **服务内容声明** → **用户隐私保护指引**
+2. 点击 **更新**，勾选并说明用途：**收集你选中的照片或视频信息**（头像）或指引中的「头像」相关项；若使用手机号、收货地址，一并声明对应类型
+3. 保存后等待约 **5 分钟** 生效，再在开发者工具 **清除授权数据** 后重试
+
+代码侧已启用 `__usePrivacyCheck__`，按钮使用 `chooseAvatar|agreePrivacyAuthorization` 与 `App.vue` 中的隐私监听。
+
 ## 支付（布版）
 
 开发环境走 `POST /api/mini/pay/mock-success/:orderId` 模拟支付。生产需配置商户号后使用 `uni.requestPayment`。

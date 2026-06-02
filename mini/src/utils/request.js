@@ -53,17 +53,21 @@ export function request(options) {
   })
 }
 
-/** 启动时静默登录：wx.login → code → token，不涉及头像昵称 */
-export function silentLoginWithWechat() {
+/** wx.login → code → token；可选携带 avatar（chooseAvatar 登录时） */
+export function silentLoginWithWechat(profile) {
   return new Promise((resolve, reject) => {
     uni.login({
       provider: 'weixin',
       success: async (loginRes) => {
         try {
+          const data = { code: loginRes.code }
+          if (profile?.avatar !== undefined) {
+            data.avatar = profile.avatar
+          }
           const body = await request({
             url: '/mini/auth/wechat',
             method: 'POST',
-            data: { code: loginRes.code },
+            data,
             auth: false,
           })
           persistAuth(body.data.token, body.data.user)
