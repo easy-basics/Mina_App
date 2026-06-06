@@ -18,6 +18,10 @@
           <el-icon><Goods /></el-icon>
           <span>商品管理</span>
         </el-menu-item>
+        <el-menu-item index="/users">
+          <el-icon><User /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
         <el-menu-item index="/orders">
           <el-icon><List /></el-icon>
           <span>订单管理</span>
@@ -43,7 +47,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Shop, Menu, Goods, List } from '@element-plus/icons-vue'
+import { Shop, Menu, Goods, User, List } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -52,6 +56,7 @@ const auth = useAuthStore()
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/products')) return '/products'
+  if (route.path.startsWith('/users')) return '/users'
   if (route.path.startsWith('/orders')) return '/orders'
   return route.path
 })

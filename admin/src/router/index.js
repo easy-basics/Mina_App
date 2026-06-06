@@ -39,6 +39,18 @@ const routes = [
         meta: { title: '商品详情' },
       },
       {
+        path: 'users',
+        name: 'Users',
+        component: () => import('@/views/users/UserListView.vue'),
+        meta: { title: '用户管理' },
+      },
+      {
+        path: 'users/:id',
+        name: 'UserDetail',
+        component: () => import('@/views/users/UserDetailView.vue'),
+        meta: { title: '用户详情' },
+      },
+      {
         path: 'orders',
         name: 'Orders',
         component: () => import('@/views/orders/OrderListView.vue'),

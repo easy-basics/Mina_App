@@ -1,0 +1,1 @@
+import{n as e}from"./index-CR4dEjkV.js";function t(t){return e.get(`/users`,{params:t})}function n(t){return e.get(`/users/${t}`)}export{t as n,n as t};
