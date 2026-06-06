@@ -145,6 +145,31 @@
         </el-table>
         <el-empty v-if="skus.length === 0" description="暂无 SKU，请添加颜色规格" />
       </el-tab-pane>
+
+      <el-tab-pane label="二维码" name="qrcode">
+        <p class="section-tip">生成小程序码，打印后贴于货架，顾客微信扫码即可打开商品详情页</p>
+        <div v-loading="qrcodeLoading" class="qrcode-panel">
+          <div class="qrcode-print-card">
+            <img v-if="qrcodeUrl" :src="qrcodeUrl" alt="商品小程序码" class="qrcode-img" />
+            <div v-else class="qrcode-placeholder">暂无二维码</div>
+            <p v-if="product" class="qrcode-product-name">{{ product.name }}</p>
+            <p v-if="product" class="qrcode-product-code">货号：{{ product.code }}</p>
+            <p class="qrcode-hint">微信扫码查看商品详情</p>
+          </div>
+          <el-alert
+            v-if="qrcodeMock"
+            type="warning"
+            :closable="false"
+            show-icon
+            class="qrcode-mock-tip"
+            title="当前为开发环境占位码，配置 WECHAT_APPID / WECHAT_SECRET 后将生成可扫码打开小程序的正式码"
+          />
+          <div class="toolbar qrcode-actions">
+            <el-button type="primary" :loading="qrcodeLoading" @click="loadQrcode">刷新二维码</el-button>
+            <el-button :disabled="!qrcodeUrl" @click="downloadQrcode">下载图片</el-button>
+          </div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
 
     <!-- SKU 弹窗 -->
@@ -205,6 +230,7 @@ import {
   batchUpdateParams,
   deleteParam,
   addDefaultParams,
+  getProductQrcode,
 } from '@/api/products'
 import { useTableDragSort } from '@/composables/useTableDragSort'
 import { getAllCategories } from '@/api/categories'
@@ -231,6 +257,9 @@ const paramsTableRef = ref()
 const skuTableRef = ref()
 const detailImagesRef = ref(null)
 let detailImagesSortable = null
+const qrcodeUrl = ref('')
+const qrcodeMock = ref(false)
+const qrcodeLoading = ref(false)
 const paramsSortEnabled = computed(() => activeTab.value === 'params')
 const skuSortEnabled = computed(() => activeTab.value === 'sku')
 const detailSortEnabled = computed(() => activeTab.value === 'detail')
@@ -436,6 +465,9 @@ watch(activeTab, (tab) => {
   } else {
     destroyDetailImagesSortable()
   }
+  if (tab === 'qrcode' && !qrcodeUrl.value) {
+    loadQrcode()
+  }
 })
 
 watch(
@@ -519,6 +551,25 @@ async function handleDeleteSku(row) {
   await deleteSku(productId.value, row.id)
   ElMessage.success('删除成功')
   loadData()
+}
+
+async function loadQrcode() {
+  qrcodeLoading.value = true
+  try {
+    const res = await getProductQrcode(productId.value)
+    qrcodeUrl.value = res.data.qrcode
+    qrcodeMock.value = !!res.data.mock
+  } finally {
+    qrcodeLoading.value = false
+  }
+}
+
+function downloadQrcode() {
+  if (!qrcodeUrl.value || !product.value) return
+  const link = document.createElement('a')
+  link.href = qrcodeUrl.value
+  link.download = `${product.value.code || product.value.name}-qrcode.png`
+  link.click()
 }
 
 onMounted(async () => {
@@ -615,5 +666,62 @@ onBeforeUnmount(() => {
 
 .toolbar {
   margin-bottom: 16px;
+}
+
+.qrcode-panel {
+  max-width: 360px;
+}
+
+.qrcode-print-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.qrcode-img {
+  width: 240px;
+  height: 240px;
+}
+
+.qrcode-placeholder {
+  width: 240px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  color: #909399;
+  border-radius: 8px;
+}
+
+.qrcode-product-name {
+  margin: 16px 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.qrcode-product-code {
+  margin: 0 0 8px;
+  color: #606266;
+  font-size: 14px;
+}
+
+.qrcode-hint {
+  margin: 0;
+  color: #909399;
+  font-size: 13px;
+}
+
+.qrcode-mock-tip {
+  margin-top: 16px;
+}
+
+.qrcode-actions {
+  margin-top: 16px;
 }
 </style>

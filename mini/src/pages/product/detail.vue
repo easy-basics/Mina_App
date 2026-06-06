@@ -103,7 +103,13 @@ const coverSrc = computed(() => resolveImageUrl(product.value?.coverImage))
 const cartCount = computed(() => cartStore.count)
 
 onLoad((query) => {
-  productId.value = Number(query.id)
+  if (query.scene) {
+    const scene = decodeURIComponent(query.scene)
+    const match = scene.match(/id=(\d+)/)
+    productId.value = match ? Number(match[1]) : Number(query.id)
+  } else {
+    productId.value = Number(query.id)
+  }
 })
 
 onShareAppMessage(() => ({

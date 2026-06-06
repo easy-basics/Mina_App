@@ -7,6 +7,7 @@ const {
   DEFAULT_PRODUCT_PARAMS,
 } = require('../services/productExtrasService');
 const { applySortUpdates } = require('../utils/sortBatch');
+const { getProductWxacode } = require('../services/wechatService');
 
 const router = express.Router();
 
@@ -130,6 +131,28 @@ router.get('/:id', async (req, res, next) => {
       });
     }
     return success(res, result);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/:id/qrcode', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { id: true, name: true, code: true },
+    });
+    if (!product) {
+      return fail(res, '商品不存在', 404, 404);
+    }
+
+    const { buffer, mock } = await getProductWxacode(id);
+    return success(res, {
+      qrcode: `data:image/png;base64,${buffer.toString('base64')}`,
+      mock,
+      product: { id: product.id, name: product.name, code: product.code },
+    });
   } catch (err) {
     return next(err);
   }

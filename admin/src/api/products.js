@@ -85,3 +85,7 @@ export function deleteParam(productId, paramId) {
 export function addDefaultParams(productId) {
   return request.post(`/products/${productId}/params/add-defaults`)
 }
+
+export function getProductQrcode(productId) {
+  return request.get(`/products/${productId}/qrcode`)
+}
