@@ -1,5 +1,9 @@
-/** 从 VITE_API_BASE_URL 推导静态资源域名（去掉 /api） */
+/** 从 VITE_ASSET_BASE_URL 或 VITE_API_BASE_URL 推导静态资源域名 */
 export function getAssetOrigin() {
+  const fromAsset = import.meta.env.VITE_ASSET_BASE_URL?.trim()
+  if (fromAsset) {
+    return fromAsset.replace(/\/+$/, '')
+  }
   const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
   if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
     return apiBase.replace(/\/api\/?$/, '')

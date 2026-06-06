@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../utils/prisma');
 const { success, fail } = require('../utils/response');
+const { toAbsoluteUrl } = require('../utils/url');
 
 const router = express.Router();
 
@@ -19,6 +20,13 @@ function serializeOrder(order) {
   return {
     ...order,
     totalAmount: Number(order.totalAmount),
+  };
+}
+
+function serializeUser(user) {
+  return {
+    ...user,
+    avatar: user.avatar ? toAbsoluteUrl(user.avatar) : null,
   };
 }
 
@@ -53,7 +61,12 @@ router.get('/', async (req, res, next) => {
       prisma.user.count({ where }),
     ]);
 
-    return success(res, { list, total, page, pageSize });
+    return success(res, {
+      list: list.map(serializeUser),
+      total,
+      page,
+      pageSize,
+    });
   } catch (err) {
     return next(err);
   }
@@ -85,7 +98,7 @@ router.get('/:id', async (req, res, next) => {
       return fail(res, '用户不存在', 404, 404);
     }
     return success(res, {
-      ...user,
+      ...serializeUser(user),
       orders: user.orders.map(serializeOrder),
     });
   } catch (err) {

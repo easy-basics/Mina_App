@@ -7,8 +7,14 @@
     <template v-if="user">
       <el-descriptions title="用户资料" :column="2" border>
         <el-descriptions-item label="头像">
-          <el-avatar v-if="user.avatar" :src="user.avatar" :size="48" />
-          <el-avatar v-else :size="48">{{ (user.nickname || user.realName || '?')[0] }}</el-avatar>
+          <img
+            v-if="user.avatar && !avatarFailed"
+            :src="resolveMediaUrl(user.avatar)"
+            class="avatar-thumb avatar-thumb--lg"
+            alt=""
+            @error="avatarFailed = true"
+          />
+          <span v-else class="avatar-fallback avatar-fallback--lg">{{ userInitial }}</span>
         </el-descriptions-item>
         <el-descriptions-item label="昵称">{{ user.nickname || '-' }}</el-descriptions-item>
         <el-descriptions-item label="手机号">{{ user.phone || '-' }}</el-descriptions-item>
@@ -73,9 +79,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getUser } from '@/api/users'
+import { resolveMediaUrl } from '@/utils/media'
 import { getStatusLabel } from '@/constants/orders'
 
 const route = useRoute()
@@ -83,6 +90,11 @@ const userId = Number(route.params.id)
 
 const loading = ref(false)
 const user = ref(null)
+const avatarFailed = ref(false)
+
+const userInitial = computed(() =>
+  (user.value?.nickname || user.value?.realName || '?')[0]
+)
 
 function formatTime(val) {
   if (!val) return '-'
@@ -94,6 +106,7 @@ async function loadData() {
   try {
     const res = await getUser(userId)
     user.value = res.data
+    avatarFailed.value = false
   } finally {
     loading.value = false
   }

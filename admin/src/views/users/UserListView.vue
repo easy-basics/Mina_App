@@ -16,8 +16,14 @@
     <el-table v-loading="loading" :data="list" border stripe>
       <el-table-column label="头像" width="70">
         <template #default="{ row }">
-          <el-avatar v-if="row.avatar" :src="row.avatar" :size="36" />
-          <el-avatar v-else :size="36">{{ (row.nickname || row.realName || '?')[0] }}</el-avatar>
+          <img
+            v-if="row.avatar && !failedAvatars[row.id]"
+            :src="resolveMediaUrl(row.avatar)"
+            class="avatar-thumb"
+            alt=""
+            @error="markAvatarFailed(row.id)"
+          />
+          <span v-else class="avatar-fallback">{{ userInitial(row) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="昵称" min-width="100">
@@ -63,10 +69,20 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { getUsers } from '@/api/users'
+import { resolveMediaUrl } from '@/utils/media'
 
 const loading = ref(false)
 const list = ref([])
 const total = ref(0)
+const failedAvatars = ref({})
+
+function userInitial(row) {
+  return (row.nickname || row.realName || '?')[0]
+}
+
+function markAvatarFailed(id) {
+  failedAvatars.value[id] = true
+}
 
 const query = reactive({
   page: 1,

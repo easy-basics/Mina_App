@@ -5,11 +5,13 @@
         <view class="user-main">
           <!-- #ifdef MP-WEIXIN -->
           <button
+            id="privacy-avatar-btn"
             class="avatar-picker"
-            open-type="chooseAvatar"
+            open-type="chooseAvatar|agreePrivacyAuthorization"
             hover-class="none"
             :disabled="authorizing"
             @chooseavatar="onChooseAvatar"
+            @agreeprivacyauthorization="onAgreePrivacy"
           >
             <image class="avatar" :src="avatarSrc" mode="aspectFill" />
           </button>
@@ -31,14 +33,16 @@
       <view v-else class="login-wrap">
         <!-- #ifdef MP-WEIXIN -->
         <button
+          id="privacy-avatar-btn"
           class="login-btn"
-          open-type="chooseAvatar"
+          open-type="chooseAvatar|agreePrivacyAuthorization"
           hover-class="none"
           :disabled="authorizing"
           @chooseavatar="onChooseAvatar"
+          @agreeprivacyauthorization="onAgreePrivacy"
         >
           <image class="login-avatar" :src="avatarSrc" mode="aspectFill" />
-          <text class="login-text">{{ authorizing ? '上传中…' : '微信登录' }}</text>
+          <text class="login-text">{{ loginBtnText }}</text>
         </button>
         <!-- #endif -->
         <!-- #ifndef MP-WEIXIN -->
@@ -92,6 +96,7 @@ import { resolveImageUrl } from '@/utils/media'
 import { TECH_SUPPORT_TEXT, DEFAULT_AVATAR } from '@/config'
 import {
   getPrivacyNeedAuthorization,
+  onAgreePrivacyAuthorization,
   showPrivacyNotDeclaredHelp,
 } from '@/utils/wechatPrivacy'
 import MineCell from '@/components/MineCell.vue'
@@ -102,6 +107,15 @@ const authorizing = ref(false)
 const avatarSrc = computed(() =>
   resolveImageUrl(userStore.mineAvatar, DEFAULT_AVATAR)
 )
+
+const loginBtnText = computed(() => {
+  if (authorizing.value) return '上传中…'
+  return userStore.isLoggedIn ? '选择微信头像' : '微信登录'
+})
+
+function onAgreePrivacy(e) {
+  onAgreePrivacyAuthorization(e)
+}
 
 function onAvatarUnsupported() {
   uni.showToast({ title: '请在微信小程序中使用', icon: 'none' })

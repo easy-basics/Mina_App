@@ -10,6 +10,26 @@
     </view>
     <!-- #endif -->
 
+    <view class="avatar-section">
+      <!-- #ifdef MP-WEIXIN -->
+      <button
+        id="privacy-avatar-btn-edit"
+        class="avatar-picker"
+        open-type="chooseAvatar|agreePrivacyAuthorization"
+        hover-class="none"
+        :disabled="avatarSaving"
+        @chooseavatar="onChooseAvatar"
+        @agreeprivacyauthorization="onAgreePrivacy"
+      >
+        <image class="avatar" :src="avatarSrc" mode="aspectFill" />
+      </button>
+      <!-- #endif -->
+      <!-- #ifndef MP-WEIXIN -->
+      <image class="avatar" :src="avatarSrc" mode="aspectFill" />
+      <!-- #endif -->
+      <text class="avatar-hint">{{ avatarSaving ? '上传中…' : '点击选择微信头像' }}</text>
+    </view>
+
     <view class="form-card">
       <view class="form-row">
         <text class="label"><text class="required">*</text>姓名</text>
@@ -72,11 +92,13 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { updateProfile, bindPhone } from '@/api/auth'
 import { ensureLogin } from '@/utils/request'
+import { resolveImageUrl } from '@/utils/media'
+import { DEFAULT_AVATAR } from '@/config'
 import {
   onAgreePrivacyAuthorization,
   getPrivacyNeedAuthorization,
@@ -86,8 +108,13 @@ import {
 
 const userStore = useUserStore()
 const saving = ref(false)
+const avatarSaving = ref(false)
 const dirty = ref(false)
 const needPrivacyTip = ref(false)
+
+const avatarSrc = computed(() =>
+  resolveImageUrl(userStore.mineAvatar, DEFAULT_AVATAR)
+)
 
 const form = reactive({
   realName: '',
@@ -199,6 +226,39 @@ function onAgreePrivacy(e) {
   }
 }
 
+async function onChooseAvatar(e) {
+  const detail = e?.detail || {}
+  const errMsg = detail.errMsg || ''
+
+  if (errMsg && errMsg !== 'chooseAvatar:ok') {
+    if (errMsg.includes('not declared')) {
+      showPrivacyNotDeclaredHelp('选择微信头像')
+      return
+    }
+    if (errMsg.includes('cancel')) return
+    uni.showToast({ title: '选择头像失败', icon: 'none' })
+    return
+  }
+
+  const tempPath = detail.avatarUrl
+  if (!tempPath) {
+    uni.showToast({ title: '未获取到头像，请重试', icon: 'none' })
+    return
+  }
+
+  avatarSaving.value = true
+  uni.showLoading({ title: '保存头像', mask: true })
+  try {
+    await userStore.saveWechatAvatar(tempPath)
+    uni.showToast({ title: '头像已保存' })
+  } catch {
+    /* upload / profile 已提示 */
+  } finally {
+    uni.hideLoading()
+    avatarSaving.value = false
+  }
+}
+
 onShow(load)
 onMounted(() => {
   syncForm()
@@ -209,6 +269,36 @@ onMounted(() => {
 .page {
   min-height: 100vh;
   padding-bottom: 48rpx;
+}
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 32rpx 32rpx;
+  background: #fff;
+  margin-top: 16rpx;
+}
+.avatar-picker {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  line-height: 1;
+}
+.avatar-picker::after {
+  border: none;
+}
+.avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: block;
+}
+.avatar-hint {
+  margin-top: 20rpx;
+  font-size: 26rpx;
+  color: #999;
 }
 .privacy-tip {
   margin: 16rpx 24rpx 0;

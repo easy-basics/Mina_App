@@ -43,3 +43,36 @@ body,
   border-radius: 4px;
   background: #f0f0f0;
 }
+
+.avatar-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: block;
+}
+
+.avatar-thumb--lg {
+  width: 48px;
+  height: 48px;
+}
+
+.avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e8e4f3;
+  color: #6b6680;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.avatar-fallback--lg {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+}

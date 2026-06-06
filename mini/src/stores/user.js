@@ -75,13 +75,16 @@ export const useUserStore = defineStore('user', {
       persistUser(res.data)
       return res.data
     },
-    /** 上传微信临时头像并保存 */
+    /** 上传微信临时头像并保存到服务端 */
     async saveWechatAvatar(tempFilePath) {
       if (!tempFilePath) return null
       if (!this.token) {
         await this.silentLogin()
       }
       const url = await uploadImage(tempFilePath)
+      if (!url) {
+        throw new Error('头像上传失败')
+      }
       const res = await updateProfile({ avatar: url })
       this.user = res.data
       persistUser(res.data)
