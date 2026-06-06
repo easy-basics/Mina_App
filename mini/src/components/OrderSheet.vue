@@ -5,7 +5,7 @@
         <text class="sheet-title">请选择门店</text>
         <text class="sheet-close" @click="close">×</text>
       </view>
-      <scroll-view scroll-x class="store-row">
+      <scroll-view v-if="stores.length" scroll-x class="store-row">
         <view
           v-for="s in stores"
           :key="s.id"
@@ -21,6 +21,7 @@
           </view>
         </view>
       </scroll-view>
+      <view v-else class="store-empty">该商品暂无可选门店</view>
 
       <view class="section-title">{{ sectionLabel }}</view>
       <view class="search-row">
@@ -45,47 +46,34 @@
         </view>
       </scroll-view>
 
-      <view v-if="orderType === 'sample'" class="delivery-row">
-        <text
-          class="delivery-opt"
-          :class="{ active: deliveryType === 'pickup' }"
-          @click="deliveryType = 'pickup'"
-        >自提</text>
-        <text
-          class="delivery-opt"
-          :class="{ active: deliveryType === 'express' }"
-          @click="deliveryType = 'express'"
-        >邮寄</text>
+      <view v-if="orderType === 'sample'" class="footer-btns">
+        <button class="btn-cart" :loading="addingCart" @click="addCart">加入购物车</button>
+        <button class="btn-buy" :disabled="!buyNowTotal" @click="buyNow">
+          立即购买{{ buyNowTotal ? ` ¥${buyNowTotal}` : '' }}
+        </button>
       </view>
-      <view v-if="orderType === 'sample' && deliveryType === 'express'" class="addr-row">
-        <picker :range="addresses" range-key="label" @change="onAddressPick">
-          <view class="addr-pick">
-            {{ selectedAddress ? selectedAddress.label : '请选择收货地址' }}
-          </view>
-        </picker>
-        <text class="addr-link" @click="goAddress">管理地址</text>
-      </view>
-
-      <button class="confirm-btn" :loading="submitting" @click="submit">确定</button>
+      <button v-else class="btn-bulk" :loading="submitting" @click="submitBulk">
+        大货下单（面议）
+      </button>
     </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { createOrder, payWechat, mockPaySuccess } from '@/api/order'
+import { createOrder } from '@/api/order'
 import { addToCart } from '@/api/cart'
-import { getAddresses } from '@/api/address'
+import { getStores } from '@/api/catalog'
 import { ensureLogin } from '@/utils/request'
 import { ORDER_TYPES } from '@/constants/orders'
 import { useCartStore } from '@/stores/cart'
 import { useSessionStore } from '@/stores/session'
+import { useCheckoutStore } from '@/stores/checkout'
 
 const props = defineProps({
   visible: Boolean,
   product: Object,
   orderType: { type: String, default: ORDER_TYPES.SAMPLE },
-  mode: { type: String, default: 'order' },
 })
 
 const emit = defineEmits(['update:visible', 'success'])
@@ -94,19 +82,14 @@ const stores = ref([])
 const selectedStoreId = ref(null)
 const colorKeyword = ref('')
 const quantities = ref({})
-const deliveryType = ref('pickup')
-const addresses = ref([])
-const selectedAddressId = ref(null)
+const addingCart = ref(false)
 const submitting = ref(false)
 const cartStore = useCartStore()
 const sessionStore = useSessionStore()
+const checkoutStore = useCheckoutStore()
 
 const sectionLabel = computed(() =>
   props.orderType === ORDER_TYPES.SAMPLE ? '板布' : '大货'
-)
-
-const selectedAddress = computed(() =>
-  addresses.value.find((a) => a.id === selectedAddressId.value)
 )
 
 const filteredSkus = computed(() => {
@@ -114,6 +97,18 @@ const filteredSkus = computed(() => {
   if (!colorKeyword.value.trim()) return list
   const kw = colorKeyword.value.trim().toLowerCase()
   return list.filter((s) => s.specName.toLowerCase().includes(kw))
+})
+
+const buyNowTotal = computed(() => {
+  if (props.orderType !== ORDER_TYPES.SAMPLE) return 0
+  const skuMap = new Map((props.product?.skus || []).map((s) => [s.id, Number(s.price)]))
+  let total = 0
+  for (const [skuId, q] of Object.entries(quantities.value)) {
+    const qty = Number(q)
+    const price = skuMap.get(Number(skuId))
+    if (qty > 0 && price != null) total += price * qty
+  }
+  return total > 0 ? total.toFixed(2) : ''
 })
 
 function isLastSelectedStore(storeId) {
@@ -129,7 +124,12 @@ watch(
   () => props.visible,
   async (v) => {
     if (v && props.product) {
-      stores.value = props.product.stores || []
+      try {
+        const storeRes = await getStores(props.product.id)
+        stores.value = storeRes.data || []
+      } catch {
+        stores.value = props.product.stores || []
+      }
       const sessionId = sessionStore.selectedStore?.id
       const inList = stores.value.some((s) => s.id === sessionId)
       selectedStoreId.value = inList ? sessionId : stores.value[0]?.id || null
@@ -139,33 +139,9 @@ watch(
       }
       quantities.value = {}
       colorKeyword.value = ''
-      deliveryType.value = 'pickup'
-      selectedAddressId.value = null
-      if (props.orderType === ORDER_TYPES.SAMPLE) {
-        try {
-          const addrRes = await getAddresses()
-          addresses.value = (addrRes.data || []).map((a) => ({
-            ...a,
-            label: `${a.name} ${a.phone} ${a.province}${a.city}${a.district}${a.detail}`,
-          }))
-          const def = addresses.value.find((a) => a.isDefault)
-          selectedAddressId.value = def?.id || addresses.value[0]?.id || null
-        } catch {
-          addresses.value = []
-        }
-      }
     }
   }
 )
-
-function onAddressPick(e) {
-  const idx = Number(e.detail.value)
-  selectedAddressId.value = addresses.value[idx]?.id || null
-}
-
-function goAddress() {
-  uni.navigateTo({ url: '/pages/address/list' })
-}
 
 function close() {
   emit('update:visible', false)
@@ -182,94 +158,97 @@ function onQtyInput(skuId, e) {
   quantities.value = { ...quantities.value, [skuId]: isNaN(v) ? '' : v }
 }
 
-async function submit() {
-  if (!ensureLogin()) return
-  const items = Object.entries(quantities.value)
+function buildItems() {
+  return Object.entries(quantities.value)
     .filter(([, q]) => Number(q) > 0)
     .map(([skuId, q]) => ({ skuId: Number(skuId), quantity: Number(q) }))
+}
+
+function validateSelection() {
+  const items = buildItems()
   if (!items.length) {
     uni.showToast({ title: '请选择数量', icon: 'none' })
-    return
+    return null
   }
-
-  if (props.mode === 'cart') {
-    submitting.value = true
-    try {
-      for (const item of items) {
-        await addToCart({
-          skuId: item.skuId,
-          quantity: item.quantity,
-          orderType: props.orderType,
-        })
-      }
-      close()
-      cartStore.refresh()
-      uni.showToast({ title: '已加入购物车' })
-      emit('success')
-    } finally {
-      submitting.value = false
-    }
-    return
-  }
-
   if (!selectedStoreId.value) {
     uni.showToast({ title: '请选择门店', icon: 'none' })
-    return
+    return null
   }
-  if (
-    props.orderType === ORDER_TYPES.SAMPLE &&
-    deliveryType.value === 'express' &&
-    !selectedAddressId.value
-  ) {
-    uni.showToast({ title: '请选择收货地址', icon: 'none' })
-    return
+  return items
+}
+
+async function addCart() {
+  if (!ensureLogin()) return
+  const items = validateSelection()
+  if (!items) return
+
+  addingCart.value = true
+  try {
+    for (const item of items) {
+      await addToCart({
+        skuId: item.skuId,
+        quantity: item.quantity,
+        orderType: props.orderType,
+      })
+    }
+    close()
+    cartStore.refresh()
+    uni.showToast({ title: '已加入购物车' })
+    emit('success')
+  } finally {
+    addingCart.value = false
   }
+}
+
+function buyNow() {
+  if (!ensureLogin()) return
+  const items = validateSelection()
+  if (!items) return
+
+  const skuMap = new Map((props.product?.skus || []).map((s) => [s.id, s]))
+  const store = stores.value.find((s) => s.id === selectedStoreId.value)
+
+  checkoutStore.setDraft({
+    source: 'product',
+    orderType: ORDER_TYPES.SAMPLE,
+    storeId: selectedStoreId.value,
+    store,
+    items: items.map((item) => {
+      const sku = skuMap.get(item.skuId)
+      return {
+        skuId: item.skuId,
+        specName: sku?.specName || '',
+        quantity: item.quantity,
+        unitPrice: Number(sku?.price || 0),
+        productId: props.product.id,
+        productName: props.product.name,
+        productCode: props.product.code,
+      }
+    }),
+  })
+
+  close()
+  uni.navigateTo({ url: '/pages/order/checkout' })
+}
+
+async function submitBulk() {
+  if (!ensureLogin()) return
+  const items = validateSelection()
+  if (!items) return
 
   submitting.value = true
   try {
     const res = await createOrder({
-      orderType: props.orderType,
+      orderType: ORDER_TYPES.BULK,
       storeId: selectedStoreId.value,
       items,
-      deliveryType: props.orderType === ORDER_TYPES.SAMPLE ? deliveryType.value : undefined,
-      addressId:
-        props.orderType === ORDER_TYPES.SAMPLE && deliveryType.value === 'express'
-          ? selectedAddressId.value
-          : undefined,
       remark: '',
     })
-    const order = res.data
     close()
-    emit('success', order)
-
-    if (props.orderType === ORDER_TYPES.SAMPLE) {
-      try {
-        const payRes = await payWechat(order.id)
-        const payment = payRes.data.payment
-        if (payment.mock) {
-          await mockPaySuccess(order.id)
-          uni.showToast({ title: '支付成功(模拟)' })
-        } else {
-          await new Promise((resolve, reject) => {
-            uni.requestPayment({
-              ...payment,
-              success: resolve,
-              fail: reject,
-            })
-          })
-        }
-      } catch (e) {
-        uni.showModal({
-          title: '订单已创建',
-          content: '支付未完成，可在我的订单中继续支付',
-          showCancel: false,
-        })
-      }
-    } else {
-      uni.showToast({ title: '已提交，客服将联系您' })
-    }
+    emit('success', res.data)
+    uni.showToast({ title: '已提交，客服将联系您' })
     cartStore.refresh()
-    uni.navigateTo({ url: `/pages/order/detail?id=${order.id}` })
+    uni.navigateTo({ url: `/pages/order/detail?id=${res.data.id}` })
   } finally {
     submitting.value = false
   }
@@ -303,6 +282,11 @@ async function submit() {
 .sheet-title {
   font-size: 30rpx;
   font-weight: 600;
+}
+.store-empty {
+  font-size: 26rpx;
+  color: #999;
+  padding: 8rpx 0 24rpx;
 }
 .sheet-close {
   font-size: 44rpx;
@@ -407,46 +391,45 @@ async function submit() {
   min-width: 120rpx;
   text-align: right;
 }
-.delivery-row {
+.footer-btns {
   display: flex;
-  gap: 24rpx;
-  margin: 20rpx 0;
+  gap: 16rpx;
+  margin-top: 16rpx;
 }
-.delivery-opt {
-  padding: 8rpx 24rpx;
-  border: 1rpx solid #ddd;
-  border-radius: 8rpx;
-  font-size: 26rpx;
-}
-.delivery-opt.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-.addr-pick {
-  padding: 16rpx;
-  background: #f5f5f5;
-  border-radius: 8rpx;
-  font-size: 26rpx;
-  margin-bottom: 8rpx;
-}
-.addr-link {
-  font-size: 24rpx;
-  color: var(--color-primary);
-  display: block;
-  margin-bottom: 12rpx;
-}
-.confirm-btn {
-  width: 100%;
-  background: #e53935;
-  color: #fff;
+.btn-cart,
+.btn-buy,
+.btn-bulk {
+  flex: 1;
   border: none;
   border-radius: 999rpx;
-  margin-top: 16rpx;
   line-height: 88rpx;
   height: 88rpx;
-  font-size: 32rpx;
+  font-size: 30rpx;
+  margin: 0;
+  padding: 0;
 }
-.confirm-btn::after {
+.btn-cart::after,
+.btn-buy::after,
+.btn-bulk::after {
   border: none;
+}
+.btn-cart {
+  background: #fff;
+  color: #e53935;
+  border: 1rpx solid #e53935;
+}
+.btn-buy {
+  background: #e53935;
+  color: #fff;
+}
+.btn-buy[disabled] {
+  background: #ccc;
+  color: #fff;
+}
+.btn-bulk {
+  width: 100%;
+  background: #43a047;
+  color: #fff;
+  margin-top: 16rpx;
 }
 </style>

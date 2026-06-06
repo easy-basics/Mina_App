@@ -10,7 +10,9 @@
           <text class="name">{{ item.product.code }}{{ item.product.name }}</text>
           <text class="spec">{{ item.specName }} · {{ item.orderType === 'sample' ? '布版' : '大货' }}</text>
           <view class="row">
-            <text class="price">¥{{ item.price }}/米</text>
+            <text class="price">
+              {{ item.orderType === 'sample' ? `¥${item.price}/米` : '面议' }}
+            </text>
             <view class="qty">
               <text @click="updateQty(item, -1)">-</text>
               <text>{{ item.quantity }}</text>
@@ -38,64 +40,39 @@
         </button>
       </view>
     </view>
-
-    <CartCheckoutSheet
-      v-model:visible="checkoutVisible"
-      :items="checkoutItems"
-      :order-type="checkoutOrderType"
-      :product-store-map="productStoreMap"
-      @success="onCheckoutSuccess"
-    />
   </view>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
+import { useCheckoutStore } from '@/stores/checkout'
 import { updateCartItem, removeCartItem } from '@/api/cart'
 import { getProduct } from '@/api/catalog'
 import { ORDER_TYPES } from '@/constants/orders'
-import CartCheckoutSheet from '@/components/CartCheckoutSheet.vue'
+import { ensureLogin } from '@/utils/request'
 import { resolveImageUrl } from '@/utils/media'
 
 const userStore = useUserStore()
 const cartStore = useCartStore()
+const checkoutStore = useCheckoutStore()
 const items = computed(() => cartStore.items)
 const sampleItems = computed(() => items.value.filter((i) => i.orderType === ORDER_TYPES.SAMPLE))
 const bulkItems = computed(() => items.value.filter((i) => i.orderType === ORDER_TYPES.BULK))
 
-const checkoutVisible = ref(false)
-const checkoutOrderType = ref(ORDER_TYPES.SAMPLE)
-const checkoutItems = ref([])
-const productStoreMap = ref({})
-
 onShow(async () => {
   if (userStore.isLoggedIn) {
     await cartStore.refresh()
-    await loadProductStores()
   }
 })
-
-async function loadProductStores() {
-  const productIds = [...new Set(items.value.map((i) => i.product.id))]
-  const map = {}
-  await Promise.all(
-    productIds.map(async (pid) => {
-      const res = await getProduct(pid)
-      map[pid] = (res.data.stores || []).map((s) => s.id)
-    })
-  )
-  productStoreMap.value = map
-}
 
 async function doLogin() {
   if (!userStore.isLoggedIn) {
     await userStore.silentLogin()
   }
   await cartStore.refresh()
-  await loadProductStores()
 }
 
 async function updateQty(item, delta) {
@@ -113,15 +90,40 @@ async function remove(item) {
   cartStore.refresh()
 }
 
-function openCheckout(orderType) {
-  checkoutOrderType.value = orderType
-  checkoutItems.value =
-    orderType === ORDER_TYPES.SAMPLE ? sampleItems.value : bulkItems.value
-  checkoutVisible.value = true
-}
+async function openCheckout(orderType) {
+  if (!ensureLogin()) return
 
-function onCheckoutSuccess() {
-  loadProductStores()
+  const cartItems = orderType === ORDER_TYPES.SAMPLE ? sampleItems.value : bulkItems.value
+  if (!cartItems.length) return
+
+  const productIds = [...new Set(cartItems.map((i) => i.product.id))]
+  const map = {}
+  await Promise.all(
+    productIds.map(async (pid) => {
+      const res = await getProduct(pid)
+      map[pid] = (res.data.stores || []).map((s) => s.id)
+    })
+  )
+
+  checkoutStore.setProductStoreMap(map)
+  checkoutStore.setDraft({
+    source: 'cart',
+    orderType,
+    storeId: null,
+    store: null,
+    items: cartItems.map((item) => ({
+      skuId: item.skuId,
+      specName: item.specName,
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.price),
+      productId: item.product.id,
+      productName: item.product.name,
+      productCode: item.product.code,
+    })),
+    clearCartSkuIds: cartItems.map((i) => i.skuId),
+  })
+
+  uni.navigateTo({ url: '/pages/order/checkout' })
 }
 </script>
 

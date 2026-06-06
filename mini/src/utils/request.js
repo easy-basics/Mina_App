@@ -1,4 +1,5 @@
 import { API_BASE, DEFAULT_AVATAR } from '@/config'
+import { isH5DevAutoLoginEnabled, devSilentLogin } from '@/utils/devAuth'
 
 function getToken() {
   return uni.getStorageSync('token') || ''
@@ -53,8 +54,12 @@ export function request(options) {
   })
 }
 
-/** wx.login → code → token；可选携带 avatar（chooseAvatar 登录时） */
+/** wx.login → code → token；H5 开发环境直连 API；可选携带 avatar（chooseAvatar 登录时） */
 export function silentLoginWithWechat(profile) {
+  if (isH5DevAutoLoginEnabled()) {
+    return devSilentLogin(profile)
+  }
+
   return new Promise((resolve, reject) => {
     uni.login({
       provider: 'weixin',

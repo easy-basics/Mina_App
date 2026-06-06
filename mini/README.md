@@ -4,6 +4,8 @@ Vue 3 + Vite + Pinia，对接 `api` 的 `/api/mini/*` 接口。
 
 ## 开发
 
+### 微信小程序
+
 ```bash
 # 终端 1：API
 cd ../api && npm run dev
@@ -15,6 +17,24 @@ npm run dev
 ```
 
 用微信开发者工具打开 **`mini/dist/build/mp-weixin`**（修改 `config.js` 后需执行 `npm run build` 再重新编译），勾选 **不校验合法域名**。
+
+### H5 浏览器调试（免登录）
+
+适合在本地浏览器中调试页面布局，无需微信开发者工具：
+
+```bash
+# 终端 1：API（需配置 WECHAT_DEV_OPENID，见 api/.env）
+cd ../api && npm run dev
+
+# 终端 2：H5
+cd mini
+npm run dev:h5
+# 浏览器打开 http://localhost:5173
+```
+
+H5 开发模式会自动调用 `/api/mini/auth/wechat` 换取 token，并注入模拟用户资料（头像、姓名、手机号等），跳过微信登录步骤。可通过 `.env.development` 中的 `VITE_DEV_AUTO_LOGIN=false` 关闭。
+
+微信专属能力（`chooseAvatar`、`getPhoneNumber`、`chooseAddress`）在 H5 中仍提示「请在微信小程序中使用」，不影响 UI 布局调试。
 
 ## 配置
 
@@ -28,7 +48,19 @@ API 地址与图片域名通过环境变量区分：
 | 命令 | 读取文件 |
 |------|----------|
 | `npm run dev` | `.env.development` |
+| `npm run dev:h5` | `.env.development` |
 | `npm run build` | `.env.production` |
+| `npm run build:h5` | `.env.production` |
+
+H5 开发专用变量（仅 `import.meta.env.DEV` 且浏览器环境生效）：
+
+| 变量 | 说明 | 默认 |
+|------|------|------|
+| `VITE_DEV_AUTO_LOGIN` | 是否自动登录 | `true` |
+| `VITE_DEV_MOCK_AVATAR` | 模拟头像 | `/static/logo.svg` |
+| `VITE_DEV_MOCK_REAL_NAME` | 模拟姓名 | `开发用户` |
+| `VITE_DEV_MOCK_PHONE` | 模拟手机号 | `13800000000` |
+| `VITE_DEV_MOCK_COMPANY` | 模拟公司名 | `开发公司` |
 
 小程序会将 `/uploads/...` 拼接到 `VITE_ASSET_BASE_URL`（生产强制 https）。  
 服务端 `api/.env` 请同步设置 `API_PUBLIC_URL=https://api.mina.bigdeng.com`。

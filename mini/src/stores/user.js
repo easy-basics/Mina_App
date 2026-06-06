@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { silentLoginWithWechat, persistAuth } from '@/utils/request'
+import { isH5DevAutoLoginEnabled } from '@/utils/devAuth'
 import { getMe, updateProfile } from '@/api/auth'
 import { uploadImage } from '@/api/upload'
 
@@ -38,7 +39,34 @@ export const useUserStore = defineStore('user', {
       this.user = data.user
       this.authReady = true
       persistUser(data.user)
+      await this.ensureDevMockProfile()
       return data
+    },
+    /** H5 开发环境补全模拟用户资料，跳过「我的」页登录态 */
+    async ensureDevMockProfile() {
+      if (!isH5DevAutoLoginEnabled()) return this.user
+
+      const u = this.user
+      const patch = {}
+      if (!u?.avatar) {
+        patch.avatar = import.meta.env.VITE_DEV_MOCK_AVATAR || '/static/logo.svg'
+      }
+      if (!u?.realName?.trim()) {
+        patch.realName = import.meta.env.VITE_DEV_MOCK_REAL_NAME || '开发用户'
+      }
+      if (!u?.phone?.trim()) {
+        patch.phone = import.meta.env.VITE_DEV_MOCK_PHONE || '13800000000'
+      }
+      if (!u?.companyName?.trim()) {
+        patch.companyName = import.meta.env.VITE_DEV_MOCK_COMPANY || '开发公司'
+      }
+
+      if (!Object.keys(patch).length) return u
+
+      const res = await updateProfile(patch)
+      this.user = res.data
+      persistUser(res.data)
+      return res.data
     },
     async fetchProfile() {
       if (!this.token) return null

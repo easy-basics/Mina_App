@@ -7,14 +7,28 @@
       <text>{{ order.statusLabel }} · {{ order.payStatusLabel }}</text>
       <text class="label">门店</text>
       <text>{{ order.store?.name }}</text>
+      <text v-if="order.orderType === 'sample'" class="label">配送方式</text>
+      <text v-if="order.orderType === 'sample'">
+        {{ order.deliveryType === 'express' ? '邮寄' : '自提' }}
+      </text>
+      <text v-if="order.orderType === 'sample' && order.deliveryType === 'pickup' && order.store?.address" class="label">自提地址</text>
+      <text v-if="order.orderType === 'sample' && order.deliveryType === 'pickup' && order.store?.address">
+        {{ order.store.address }}
+      </text>
+      <text v-if="order.orderType === 'sample' && order.deliveryType === 'express' && order.address" class="label">收货地址</text>
+      <text v-if="order.orderType === 'sample' && order.deliveryType === 'express' && order.address">
+        {{ formatAddress(order.address) }}
+      </text>
+      <text v-if="order.remark" class="label">订单备注</text>
+      <text v-if="order.remark">{{ order.remark }}</text>
       <text class="label">金额</text>
-      <text class="amount">¥{{ order.totalAmount }}</text>
+      <text class="amount">{{ order.orderType === 'bulk' ? '面议' : `¥${order.totalAmount}` }}</text>
     </view>
     <view class="card">
       <text class="section">商品明细</text>
       <view v-for="item in order.items" :key="item.id" class="item-row">
         <text>{{ item.specName }} x {{ item.quantity }}</text>
-        <text>¥{{ item.unitPrice }}</text>
+        <text>{{ order.orderType === 'bulk' ? '面议' : `¥${item.unitPrice}` }}</text>
       </view>
     </view>
     <button
@@ -30,7 +44,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getOrder, payWechat, mockPaySuccess } from '@/api/order'
+import { getOrder } from '@/api/order'
+import { paySampleOrder } from '@/utils/payOrder'
 
 const order = ref(null)
 const orderId = ref(0)
@@ -39,6 +54,11 @@ onLoad((q) => {
   orderId.value = Number(q.id)
 })
 
+function formatAddress(addr) {
+  if (!addr) return ''
+  return `${addr.name} ${addr.phone} ${addr.province || ''}${addr.city || ''}${addr.district || ''}${addr.detail || ''}`
+}
+
 async function load() {
   const res = await getOrder(orderId.value)
   order.value = res.data
@@ -46,21 +66,9 @@ async function load() {
 
 async function doPay() {
   try {
-    const payRes = await payWechat(orderId.value)
-    const payment = payRes.data.payment
-    if (payment.mock) {
-      await mockPaySuccess(orderId.value)
-      uni.showToast({ title: '支付成功' })
-      load()
-    } else {
-      uni.requestPayment({
-        ...payment,
-        success: () => {
-          uni.showToast({ title: '支付成功' })
-          load()
-        },
-      })
-    }
+    await paySampleOrder(orderId.value)
+    uni.showToast({ title: '支付成功' })
+    load()
   } catch {
     uni.showToast({ title: '支付失败', icon: 'none' })
   }

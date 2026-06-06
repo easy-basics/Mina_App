@@ -2,17 +2,34 @@ const crypto = require('crypto');
 
 let accessTokenCache = { token: null, expiresAt: 0 };
 
+function isDevLoginCode(code) {
+  return typeof code === 'string' && (code === 'dev' || code.startsWith('dev_'));
+}
+
+function resolveDevSession() {
+  if (process.env.NODE_ENV !== 'development' || !process.env.WECHAT_DEV_OPENID) {
+    return null;
+  }
+  return {
+    openid: process.env.WECHAT_DEV_OPENID,
+    session_key: 'dev',
+    unionid: null,
+  };
+}
+
 async function code2Session(code) {
+  const devSession = isDevLoginCode(code) ? resolveDevSession() : null;
+  if (devSession) {
+    return devSession;
+  }
+
   const appid = process.env.WECHAT_APPID;
   const secret = process.env.WECHAT_SECRET;
 
   if (!appid || !secret) {
-    if (process.env.NODE_ENV === 'development' && process.env.WECHAT_DEV_OPENID) {
-      return {
-        openid: process.env.WECHAT_DEV_OPENID,
-        session_key: 'dev',
-        unionid: null,
-      };
+    const fallback = resolveDevSession();
+    if (fallback) {
+      return fallback;
     }
     const err = new Error('微信登录未配置，请设置 WECHAT_APPID 和 WECHAT_SECRET');
     err.status = 503;

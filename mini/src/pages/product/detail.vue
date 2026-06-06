@@ -62,7 +62,6 @@
       v-model:visible="sheetVisible"
       :product="product"
       :order-type="sheetOrderType"
-      mode="order"
       @success="onOrderSuccess"
     />
   </view>
