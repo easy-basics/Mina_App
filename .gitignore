@@ -5,6 +5,8 @@ admin/.env.*.local
 mini/.env.local
 mini/.env.*.local
 api/.env
+api/certs/*
+!api/certs/.gitkeep
 .cursor/mcp.json
 api/LOCAL_CREDENTIALS.md
 api/uploads/*

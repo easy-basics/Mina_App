@@ -19,3 +19,7 @@ export function payWechat(orderId) {
 export function mockPaySuccess(orderId) {
   return request({ url: `/mini/pay/mock-success/${orderId}`, method: 'POST' })
 }
+
+export function syncPayStatus(orderId) {
+  return request({ url: `/mini/pay/sync/${orderId}`, method: 'POST' })
+}

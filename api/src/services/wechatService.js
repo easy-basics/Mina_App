@@ -119,33 +119,49 @@ async function getPhoneNumber(code) {
   return data.phone_info;
 }
 
+const {
+  isRealPayEnabled,
+  createJsapiPayment,
+} = require('./wechatPayService');
+
+function getPayApiKey() {
+  return process.env.WECHAT_PAY_API_V3_KEY || process.env.WECHAT_PAY_API_KEY || '';
+}
+
 function isPayConfigured() {
-  return !!(process.env.WECHAT_MCH_ID && process.env.WECHAT_PAY_API_KEY && process.env.WECHAT_APPID);
+  return isRealPayEnabled();
+}
+
+function createMockJsapiPayParams(order) {
+  return {
+    mock: true,
+    timeStamp: String(Math.floor(Date.now() / 1000)),
+    nonceStr: crypto.randomBytes(16).toString('hex'),
+    package: `prepay_id=mock_${order.orderNo}`,
+    signType: 'RSA',
+    paySign: 'MOCK_SIGN',
+  };
 }
 
 /**
- * 开发环境 mock 支付参数；生产需对接微信支付 V3 API
+ * 开发环境 mock 支付参数；生产对接微信支付 V3 JSAPI
  */
-function createJsapiPayParams(order) {
-  if (!isPayConfigured()) {
+async function createJsapiPayParams(order, openid, clientIp) {
+  if (!isRealPayEnabled()) {
     if (process.env.NODE_ENV === 'development') {
-      return {
-        mock: true,
-        timeStamp: String(Math.floor(Date.now() / 1000)),
-        nonceStr: crypto.randomBytes(16).toString('hex'),
-        package: `prepay_id=mock_${order.orderNo}`,
-        signType: 'RSA',
-        paySign: 'MOCK_SIGN',
-      };
+      return createMockJsapiPayParams(order);
     }
-    const err = new Error('微信支付未配置');
+    if (!getPayApiKey() || !process.env.WECHAT_MCH_ID || !process.env.WECHAT_APPID) {
+      const err = new Error('微信支付未配置');
+      err.status = 503;
+      throw err;
+    }
+    const err = new Error('微信支付未启用');
     err.status = 503;
     throw err;
   }
 
-  const err = new Error('微信支付接口待配置商户证书后启用');
-  err.status = 503;
-  throw err;
+  return createJsapiPayment(order, openid, clientIp);
 }
 
 /**
