@@ -121,6 +121,7 @@ async function getPhoneNumber(code) {
 
 const {
   isRealPayEnabled,
+  getRealPayDisableMessage,
   createJsapiPayment,
 } = require('./wechatPayService');
 
@@ -143,20 +144,25 @@ function createMockJsapiPayParams(order) {
   };
 }
 
+function isPublicApiUrl() {
+  const base = (process.env.API_PUBLIC_URL || '').trim();
+  return /^https:\/\//.test(base) && !/localhost|127\.0\.0\.1/i.test(base);
+}
+
 /**
  * 开发环境 mock 支付参数；生产对接微信支付 V3 JSAPI
  */
 async function createJsapiPayParams(order, openid, clientIp) {
   if (!isRealPayEnabled()) {
     if (process.env.NODE_ENV === 'development') {
+      if (isPublicApiUrl()) {
+        const err = new Error('生产环境 API 未启用真实支付，请设置 NODE_ENV=production');
+        err.status = 503;
+        throw err;
+      }
       return createMockJsapiPayParams(order);
     }
-    if (!getPayApiKey() || !process.env.WECHAT_MCH_ID || !process.env.WECHAT_APPID) {
-      const err = new Error('微信支付未配置');
-      err.status = 503;
-      throw err;
-    }
-    const err = new Error('微信支付未启用');
+    const err = new Error(getRealPayDisableMessage() || '微信支付未配置');
     err.status = 503;
     throw err;
   }

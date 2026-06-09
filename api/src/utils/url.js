@@ -20,4 +20,26 @@ function toAbsoluteUrl(url) {
   return absolute;
 }
 
-module.exports = { getPublicBaseUrl, toAbsoluteUrl };
+/** 入库/管理端展示：统一为 /uploads/... 相对路径 */
+function toRelativeMediaPath(url) {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('/uploads/')) return trimmed;
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const u = new URL(trimmed);
+      if (u.pathname.startsWith('/uploads/')) return u.pathname;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const idx = trimmed.indexOf('/uploads/');
+  if (idx !== -1) return trimmed.slice(idx);
+
+  return trimmed.startsWith('/') ? trimmed : null;
+}
+
+module.exports = { getPublicBaseUrl, toAbsoluteUrl, toRelativeMediaPath };

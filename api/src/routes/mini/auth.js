@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../../utils/prisma');
 const { success, fail } = require('../../utils/response');
 const { code2Session, getPhoneNumber } = require('../../services/wechatService');
+const { toRelativeMediaPath } = require('../../utils/url');
 const miniUserMiddleware = require('../../middleware/miniUser');
 
 const router = express.Router();
@@ -23,7 +24,7 @@ router.post('/wechat', async (req, res, next) => {
     }
     if (avatar !== undefined) {
       const url = avatar?.trim();
-      profileData.avatar = url || null;
+      profileData.avatar = url ? toRelativeMediaPath(url) : null;
     }
 
     const user = await prisma.user.upsert({
@@ -100,7 +101,10 @@ router.put('/profile', miniUserMiddleware, async (req, res, next) => {
     const data = {};
 
     if (nickname !== undefined) data.nickname = nickname?.trim() || null;
-    if (avatar !== undefined) data.avatar = avatar?.trim() || null;
+    if (avatar !== undefined) {
+      const url = avatar?.trim();
+      data.avatar = url ? toRelativeMediaPath(url) : null;
+    }
     if (phone !== undefined) {
       const p = phone?.trim();
       if (p && !/^1\d{10}$/.test(p)) {

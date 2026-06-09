@@ -62,23 +62,63 @@ function getPayClient() {
   return payClient;
 }
 
-function isRealPayEnabled() {
-  if (process.env.NODE_ENV !== 'production') {
+function certFileExists(envPathKey, envInlineKey) {
+  if (process.env[envInlineKey]) {
+    return true;
+  }
+  const filePath = process.env[envPathKey];
+  if (!filePath) {
     return false;
   }
+  const resolved = path.isAbsolute(filePath)
+    ? filePath
+    : path.join(process.cwd(), filePath);
+  return fs.existsSync(resolved);
+}
 
-  const apiKey = getPayApiKey();
-  const hasCert =
+function getRealPayDisableReasons() {
+  const reasons = [];
+  if (process.env.NODE_ENV !== 'production') {
+    reasons.push(`NODE_ENV 须为 production（当前: ${process.env.NODE_ENV || '(未设置)'}）`);
+  }
+  if (!process.env.WECHAT_APPID) {
+    reasons.push('缺少 WECHAT_APPID');
+  }
+  if (!process.env.WECHAT_MCH_ID) {
+    reasons.push('缺少 WECHAT_MCH_ID');
+  }
+  if (!process.env.WECHAT_MCH_SERIAL_NO) {
+    reasons.push('缺少 WECHAT_MCH_SERIAL_NO');
+  }
+  if (!getPayApiKey()) {
+    reasons.push('缺少 WECHAT_PAY_API_V3_KEY 或 WECHAT_PAY_API_KEY');
+  }
+  const hasCertEnv =
     (process.env.WECHAT_MCH_CERT_PATH || process.env.WECHAT_MCH_CERT) &&
     (process.env.WECHAT_MCH_PRIVATE_KEY_PATH || process.env.WECHAT_MCH_PRIVATE_KEY);
+  if (!hasCertEnv) {
+    reasons.push('缺少 WECHAT_MCH_CERT_PATH / WECHAT_MCH_PRIVATE_KEY_PATH（或内联 PEM）');
+  } else {
+    if (!certFileExists('WECHAT_MCH_PRIVATE_KEY_PATH', 'WECHAT_MCH_PRIVATE_KEY')) {
+      reasons.push('商户私钥文件不存在（检查 WECHAT_MCH_PRIVATE_KEY_PATH）');
+    }
+    if (!certFileExists('WECHAT_MCH_CERT_PATH', 'WECHAT_MCH_CERT')) {
+      reasons.push('商户证书文件不存在（检查 WECHAT_MCH_CERT_PATH）');
+    }
+  }
+  return reasons;
+}
 
-  return !!(
-    process.env.WECHAT_APPID &&
-    process.env.WECHAT_MCH_ID &&
-    process.env.WECHAT_MCH_SERIAL_NO &&
-    apiKey &&
-    hasCert
-  );
+function isRealPayEnabled() {
+  return getRealPayDisableReasons().length === 0;
+}
+
+function getRealPayDisableMessage() {
+  const reasons = getRealPayDisableReasons();
+  if (!reasons.length) {
+    return '';
+  }
+  return `微信支付未启用：${reasons.join('；')}`;
 }
 
 function getNotifyUrl() {
@@ -204,6 +244,8 @@ async function queryPaymentByOrderNo(outTradeNo) {
 
 module.exports = {
   isRealPayEnabled,
+  getRealPayDisableReasons,
+  getRealPayDisableMessage,
   createJsapiPayment,
   handlePaymentNotify,
   queryPaymentByOrderNo,

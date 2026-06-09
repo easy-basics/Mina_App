@@ -11,7 +11,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "node prisma/seed.js",
-    "db:check": "node scripts/check-db.js"
+    "db:check": "node scripts/check-db.js",
+    "db:fix-avatars": "node scripts/fix-user-avatar-paths.js",
+    "verify:pay": "node scripts/verify-pay.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
