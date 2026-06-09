@@ -1,4 +1,4 @@
-import { payWechat, mockPaySuccess } from '@/api/order'
+import { payWechat, mockPaySuccess, syncPayStatus } from '@/api/order'
 
 /** 板布订单发起微信支付；开发环境 mock 时自动调 mock-success */
 export async function paySampleOrder(orderId) {
@@ -15,6 +15,7 @@ export async function paySampleOrder(orderId) {
       fail: reject,
     })
   })
+  await syncPayStatus(orderId)
   return { paid: true, mock: false }
 }
 
