@@ -98,6 +98,20 @@ API_PUBLIC_URL=http://192.168.1.10:3000
 
 开发环境走 `POST /api/mini/pay/mock-success/:orderId` 模拟支付。生产需配置商户号后使用 `uni.requestPayment`。
 
+**体验版/正式版必须满足：**
+
+1. 生产 API 的 `api/.env` 中 `NODE_ENV=production`（须与 `production` 完全一致，改后必须重启进程）
+2. 微信支付 V3 全套变量已写入服务器 `api/.env`：`WECHAT_MCH_ID`、`WECHAT_MCH_SERIAL_NO`、`WECHAT_PAY_API_KEY`、`WECHAT_MCH_PRIVATE_KEY_PATH`、`WECHAT_MCH_CERT_PATH`
+3. 证书文件须手动上传到服务器（`api/certs/` 在 gitignore 中，不会随代码部署）：
+   ```bash
+   scp api/certs/apiclient_key.pem api/certs/apiclient_cert.pem user@server:/path/to/mina/api/certs/
+   ```
+4. 在服务器执行 `cd api && npm run verify:pay`，确认返回真实 `prepay_id`
+5. 检查 `curl https://api.mina.bigdeng.com/api/health`，`payEnabled` 应为 `true`
+6. 重新 `npm run build` 上传体验版
+
+若报错「微信支付未启用」，health 接口的 `payDisableReasons` 会列出具体缺失项。
+
 ## 生产上线
 
 1. `manifest.json` 填写 `mp-weixin.appid`

@@ -38,7 +38,20 @@ app.use('/api/orders', authMiddleware, orderRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 
 app.get('/api/health', (req, res) => {
-  res.json({ code: 0, data: { status: 'ok' }, message: 'ok' });
+  const {
+    isRealPayEnabled,
+    getRealPayDisableReasons,
+  } = require('./services/wechatPayService');
+  res.json({
+    code: 0,
+    data: {
+      status: 'ok',
+      nodeEnv: process.env.NODE_ENV || null,
+      payEnabled: isRealPayEnabled(),
+      payDisableReasons: getRealPayDisableReasons(),
+    },
+    message: 'ok',
+  });
 });
 
 app.use(errorHandler);

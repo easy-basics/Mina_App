@@ -1,7 +1,7 @@
 const express = require('express');
 const prisma = require('../utils/prisma');
 const { success, fail } = require('../utils/response');
-const { toAbsoluteUrl } = require('../utils/url');
+const { toRelativeMediaPath } = require('../utils/url');
 
 const router = express.Router();
 
@@ -26,7 +26,7 @@ function serializeOrder(order) {
 function serializeUser(user) {
   return {
     ...user,
-    avatar: user.avatar ? toAbsoluteUrl(user.avatar) : null,
+    avatar: toRelativeMediaPath(user.avatar),
   };
 }
 

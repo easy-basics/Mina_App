@@ -93,7 +93,7 @@ import { ORDER_TYPES } from '@/constants/orders'
 import { useCheckoutStore } from '@/stores/checkout'
 import { useCartStore } from '@/stores/cart'
 import { useSessionStore } from '@/stores/session'
-import { paySampleOrder, showPayIncompleteModal } from '@/utils/payOrder'
+import { paySampleOrder, showPayIncompleteModal, showPayErrorModal } from '@/utils/payOrder'
 
 const checkoutStore = useCheckoutStore()
 const cartStore = useCartStore()
@@ -256,8 +256,14 @@ async function submit() {
       try {
         await paySampleOrder(order.id)
         uni.showToast({ title: '支付成功' })
-      } catch {
-        await showPayIncompleteModal()
+      } catch (e) {
+        console.error('[checkout] pay failed:', e)
+        const msg = e?.message || ''
+        if (msg.includes('支付服务未就绪') || msg.includes('微信支付')) {
+          await showPayErrorModal(msg)
+        } else {
+          await showPayIncompleteModal()
+        }
       }
     } else {
       uni.showToast({ title: '大货订单已提交' })

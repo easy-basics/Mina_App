@@ -25,42 +25,20 @@ function toUploadsPath(url) {
   return ''
 }
 
-function isLocalHost() {
-  if (typeof window === 'undefined') return false
-  const host = window.location.hostname
-  return host === 'localhost' || host === '127.0.0.1'
-}
-
-/** 相对路径 /uploads/... → 可访问的绝对地址（仅用于展示） */
+/** /uploads/... 统一用相对路径（dev/preview 走 Vite 代理，生产走 nginx 反代） */
 export function resolveMediaUrl(url) {
   if (!url) return ''
 
   const uploadsPath = toUploadsPath(url)
-  if (uploadsPath && isLocalHost()) {
-    // 本地 dev / preview 走 Vite 同源 /uploads 代理，避免跨域加载失败
+  if (uploadsPath) {
     return uploadsPath
   }
 
   if (url.startsWith('http://') || url.startsWith('https://')) {
-    const origin = getAssetOrigin()
-    if (origin && url.includes('admin.mina.bigdeng.com')) {
-      try {
-        const u = new URL(url)
-        if (u.pathname.startsWith('/uploads/')) {
-          return `${origin}${u.pathname}`
-        }
-      } catch {
-        /* ignore */
-      }
-    }
     return url
   }
 
-  const origin = getAssetOrigin()
-  if (!origin) {
-    return url.startsWith('/') ? url : `/${url}`
-  }
-  return url.startsWith('/') ? `${origin}${url}` : `${origin}/${url}`
+  return url.startsWith('/') ? url : `/${url}`
 }
 
 /** 入库/提交用：统一存相对路径 */
