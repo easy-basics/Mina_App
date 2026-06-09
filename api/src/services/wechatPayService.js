@@ -1,8 +1,22 @@
 const fs = require('fs');
 const path = require('path');
-const WxPay = require('wechatpay-node-v3');
 
 let payClient = null;
+let WxPayClass = null;
+
+function loadWxPayClass() {
+  if (WxPayClass) {
+    return WxPayClass;
+  }
+  try {
+    WxPayClass = require('wechatpay-node-v3');
+    return WxPayClass;
+  } catch {
+    const err = new Error('微信支付依赖未安装，请在 api 目录执行 npm install');
+    err.status = 503;
+    throw err;
+  }
+}
 
 function getPayApiKey() {
   return process.env.WECHAT_PAY_API_V3_KEY || process.env.WECHAT_PAY_API_KEY || '';
@@ -36,7 +50,7 @@ function getPayClient() {
     throw err;
   }
 
-  payClient = new WxPay({
+  payClient = new (loadWxPayClass())({
     appid: process.env.WECHAT_APPID,
     mchid: process.env.WECHAT_MCH_ID,
     serial_no: process.env.WECHAT_MCH_SERIAL_NO || undefined,
