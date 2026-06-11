@@ -25,12 +25,16 @@ function toUploadsPath(url) {
   return ''
 }
 
-/** /uploads/... 统一用相对路径（dev/preview 走 Vite 代理，生产走 nginx 反代） */
+/** /uploads/... 展示地址：有绝对资源域名时拼到 API，否则相对路径（dev 走 Vite/nginx 代理） */
 export function resolveMediaUrl(url) {
   if (!url) return ''
 
   const uploadsPath = toUploadsPath(url)
   if (uploadsPath) {
+    const origin = getAssetOrigin()
+    if (origin.startsWith('http://') || origin.startsWith('https://')) {
+      return `${origin.replace(/\/+$/, '')}${uploadsPath}`
+    }
     return uploadsPath
   }
 
