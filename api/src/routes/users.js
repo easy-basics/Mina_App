@@ -7,6 +7,7 @@ const router = express.Router();
 
 const userListSelect = {
   id: true,
+  openid: true,
   nickname: true,
   avatar: true,
   phone: true,
@@ -39,6 +40,7 @@ router.get('/', async (req, res, next) => {
     const where = keyword
       ? {
           OR: [
+            { openid: { contains: keyword } },
             { nickname: { contains: keyword } },
             { phone: { contains: keyword } },
             { realName: { contains: keyword } },

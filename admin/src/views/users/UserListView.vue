@@ -4,7 +4,7 @@
       <div class="toolbar-left">
         <el-input
           v-model="query.keyword"
-          placeholder="昵称/手机/姓名/公司"
+          placeholder="OpenID/昵称/手机/姓名/公司"
           clearable
           style="width: 220px"
           @keyup.enter="loadData"
@@ -24,6 +24,11 @@
             @error="markAvatarFailed(row.id)"
           />
           <span v-else class="avatar-fallback">{{ userInitial(row) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="OpenID" min-width="200" show-overflow-tooltip>
+        <template #default="{ row }">
+          <span class="openid">{{ row.openid || '-' }}</span>
         </template>
       </el-table-column>
       <el-table-column label="昵称" min-width="100">
@@ -112,6 +117,11 @@ onMounted(loadData)
 </script>
 
 <style scoped>
+.openid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
 .pager {
   margin-top: 16px;
   display: flex;
