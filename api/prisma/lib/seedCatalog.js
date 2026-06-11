@@ -58,15 +58,6 @@ async function ensureProduct(prisma, categoryId, product) {
   return primary;
 }
 
-async function ensureProductStore(prisma, productId, storeId) {
-  const existing = await prisma.productStore.findUnique({
-    where: { productId_storeId: { productId, storeId } },
-  });
-  if (!existing) {
-    await prisma.productStore.create({ data: { productId, storeId } });
-  }
-}
-
 async function ensureParams(prisma, productId, params) {
   await initDefaultParams(productId);
 
@@ -120,7 +111,7 @@ async function ensureSkus(prisma, productId, skus) {
   }
 }
 
-async function seedCatalog(prisma, storeId = 1) {
+async function seedCatalog(prisma) {
   console.log('Seeding catalog...');
 
   await prepareSeedImages();
@@ -129,7 +120,6 @@ async function seedCatalog(prisma, storeId = 1) {
     const category = await ensureCategory(prisma, cat);
     for (const product of cat.products) {
       const row = await ensureProduct(prisma, category.id, product);
-      await ensureProductStore(prisma, row.id, storeId);
       await ensureParams(prisma, row.id, product.params);
       await ensureDetailImagesForCode(prisma, product.code);
       await ensureSkus(prisma, row.id, product.skus);

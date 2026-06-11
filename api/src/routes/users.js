@@ -85,9 +85,6 @@ router.get('/:id', async (req, res, next) => {
         orders: {
           orderBy: { id: 'desc' },
           take: 20,
-          include: {
-            store: { select: { id: true, name: true } },
-          },
         },
         _count: {
           select: { orders: true, addresses: true, favorites: true },

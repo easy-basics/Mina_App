@@ -34,7 +34,7 @@
       <view class="section">
         <text class="section-title">联系我们</text>
         <text class="section-body">
-          欢迎通过小程序进店选购，或联系门店咨询大货订单与定制需求。具体门店地址与联系方式请在「进店下单」中选择对应门店查看。
+          欢迎通过小程序浏览选购，或联系客服咨询大货订单与定制需求。
         </text>
       </view>
 

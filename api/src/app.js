@@ -7,7 +7,6 @@ const errorHandler = require('./middleware/errorHandler');
 const { getCorsOptions } = require('./utils/cors');
 
 const authRoutes = require('./routes/auth');
-const storeRoutes = require('./routes/stores');
 const categoryRoutes = require('./routes/categories');
 const productRoutes = require('./routes/products');
 const uploadRoutes = require('./routes/upload');
@@ -30,7 +29,6 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/mini', miniRoutes);
 
-app.use('/api/stores', authMiddleware, storeRoutes);
 app.use('/api/categories', authMiddleware, categoryRoutes);
 app.use('/api/products', authMiddleware, productRoutes);
 app.use('/api/upload', authMiddleware, uploadRoutes);

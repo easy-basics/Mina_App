@@ -12,6 +12,6 @@ export function getProduct(id) {
   return request({ url: `/mini/catalog/products/${id}`, auth: false })
 }
 
-export function getStores(productId) {
-  return request({ url: '/mini/catalog/stores', data: { productId }, auth: false })
+export function getShopInfo() {
+  return request({ url: '/mini/catalog/shop-info', auth: false })
 }

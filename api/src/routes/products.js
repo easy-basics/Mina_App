@@ -111,18 +111,12 @@ router.get('/:id', async (req, res, next) => {
         skus: { orderBy: [{ sort: 'asc' }, { id: 'asc' }] },
         detailImages: { orderBy: [{ sort: 'asc' }, { id: 'asc' }] },
         params: { orderBy: [{ sort: 'asc' }, { id: 'asc' }] },
-        productStores: { include: { store: { select: { id: true, name: true } } } },
       },
     });
     if (!product) {
       return fail(res, '商品不存在', 404, 404);
     }
-    const storeIds = product.productStores.map((ps) => ps.storeId);
-    const result = serializeProduct({
-      ...product,
-      storeIds,
-      productStores: undefined,
-    });
+    const result = serializeProduct(product);
     if (!result.params?.length) {
       await initDefaultParams(id);
       result.params = await prisma.productParam.findMany({
@@ -217,36 +211,6 @@ router.delete('/:id', async (req, res, next) => {
     if (err.code === 'P2025') {
       return fail(res, '商品不存在', 404, 404);
     }
-    return next(err);
-  }
-});
-
-router.put('/:id/stores', async (req, res, next) => {
-  try {
-    const productId = parseInt(req.params.id, 10);
-    const { storeIds = [] } = req.body;
-
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) {
-      return fail(res, '商品不存在', 404, 404);
-    }
-
-    await prisma.$transaction([
-      prisma.productStore.deleteMany({ where: { productId } }),
-      ...(storeIds.length
-        ? [
-            prisma.productStore.createMany({
-              data: storeIds.map((storeId) => ({
-                productId,
-                storeId: Number(storeId),
-              })),
-            }),
-          ]
-        : []),
-    ]);
-
-    return success(res, { storeIds }, '门店关联已更新');
-  } catch (err) {
     return next(err);
   }
 });

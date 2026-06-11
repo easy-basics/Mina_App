@@ -28,10 +28,6 @@ export function deleteProduct(id) {
   return request.delete(`/products/${id}`)
 }
 
-export function updateProductStores(id, storeIds) {
-  return request.put(`/products/${id}/stores`, { storeIds })
-}
-
 export function getSkus(productId) {
   return request.get(`/products/${productId}/skus`)
 }

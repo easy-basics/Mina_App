@@ -55,9 +55,6 @@
             </el-button>
           </template>
         </el-table-column>
-        <el-table-column label="门店" width="120">
-          <template #default="{ row }">{{ row.store?.name }}</template>
-        </el-table-column>
         <el-table-column label="类型" width="80">
           <template #default="{ row }">{{ row.orderType === 'sample' ? '布版' : '大货' }}</template>
         </el-table-column>

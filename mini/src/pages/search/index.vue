@@ -2,17 +2,6 @@
   <view class="page">
     <SearchBar v-model="keyword" @search="doSearch" />
 
-    <view class="scan-row" @click="scanCode">
-      <view class="scan-icon">
-        <view class="scan-corner scan-tl" />
-        <view class="scan-corner scan-tr" />
-        <view class="scan-corner scan-bl" />
-        <view class="scan-corner scan-br" />
-        <view class="scan-line" />
-      </view>
-      <text class="scan-text">扫码搜品</text>
-    </view>
-
     <view v-if="history.length" class="history-section">
       <view class="history-header">
         <text class="history-title">搜索历史</text>
@@ -83,24 +72,6 @@ function onClearHistory() {
   })
 }
 
-function scanCode() {
-  uni.scanCode({
-    success(res) {
-      const result = res.result?.trim()
-      if (!result) {
-        uni.showToast({ title: '未识别到内容', icon: 'none' })
-        return
-      }
-      keyword.value = result
-      addSearchHistory(result)
-      goResult(result)
-    },
-    fail() {
-      uni.showToast({ title: '扫码取消', icon: 'none' })
-    },
-  })
-}
-
 onShow(refreshHistory)
 </script>
 
@@ -108,67 +79,6 @@ onShow(refreshHistory)
 .page {
   min-height: 100vh;
   background: #fff;
-}
-
-.scan-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48rpx 24rpx 40rpx;
-}
-
-.scan-icon {
-  width: 80rpx;
-  height: 80rpx;
-  position: relative;
-  margin-bottom: 16rpx;
-}
-
-.scan-corner {
-  position: absolute;
-  width: 24rpx;
-  height: 24rpx;
-  border-color: #333;
-  border-style: solid;
-}
-
-.scan-tl {
-  top: 0;
-  left: 0;
-  border-width: 4rpx 0 0 4rpx;
-}
-
-.scan-tr {
-  top: 0;
-  right: 0;
-  border-width: 4rpx 4rpx 0 0;
-}
-
-.scan-bl {
-  bottom: 0;
-  left: 0;
-  border-width: 0 0 4rpx 4rpx;
-}
-
-.scan-br {
-  bottom: 0;
-  right: 0;
-  border-width: 0 4rpx 4rpx 0;
-}
-
-.scan-line {
-  position: absolute;
-  left: 12rpx;
-  right: 12rpx;
-  top: 50%;
-  height: 4rpx;
-  background: #333;
-  transform: translateY(-50%);
-}
-
-.scan-text {
-  font-size: 28rpx;
-  color: #333;
 }
 
 .history-section {

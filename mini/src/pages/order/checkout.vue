@@ -1,20 +1,5 @@
 <template>
   <view v-if="draft" class="page">
-    <view v-if="draft.source === 'cart'" class="card">
-      <text class="section-title">选择门店</text>
-      <scroll-view scroll-x class="store-row">
-        <view
-          v-for="s in stores"
-          :key="s.id"
-          class="store-chip"
-          :class="{ active: s.id === selectedStoreId }"
-          @click="selectStore(s)"
-        >
-          {{ s.name }}
-        </view>
-      </scroll-view>
-    </view>
-
     <view v-if="isSample" class="card">
       <text class="section-title">配送方式</text>
       <view class="delivery-row">
@@ -29,10 +14,10 @@
           @click="deliveryType = 'express'"
         >邮寄</text>
       </view>
-      <view v-if="deliveryType === 'pickup' && selectedStore" class="pickup-info">
-        <text class="pickup-name">{{ selectedStore.name }}</text>
-        <text v-if="selectedStore.address" class="pickup-meta">{{ selectedStore.address }}</text>
-        <text v-if="selectedStore.phone" class="pickup-meta">{{ selectedStore.phone }}</text>
+      <view v-if="deliveryType === 'pickup' && shopInfo" class="pickup-info">
+        <text class="pickup-name">{{ shopInfo.name }}</text>
+        <text v-if="shopInfo.address" class="pickup-meta">{{ shopInfo.address }}</text>
+        <text v-if="shopInfo.phone" class="pickup-meta">{{ shopInfo.phone }}</text>
       </view>
       <view v-if="deliveryType === 'express'" class="addr-row">
         <picker :range="addresses" range-key="label" @change="onAddressPick">
@@ -56,7 +41,7 @@
         <text v-if="isSample" class="item-price">¥{{ lineTotal(item) }}</text>
         <text v-else class="item-price">面议</text>
       </view>
-      <view v-if="!displayItems.length" class="empty-hint">该门店无可结算商品</view>
+      <view v-if="!displayItems.length" class="empty-hint">暂无商品</view>
     </view>
 
     <view class="card">
@@ -86,22 +71,19 @@
 import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { createOrder } from '@/api/order'
-import { getStores } from '@/api/catalog'
+import { getShopInfo } from '@/api/catalog'
 import { getAddresses } from '@/api/address'
 import { ensureLogin } from '@/utils/request'
 import { ORDER_TYPES } from '@/constants/orders'
 import { useCheckoutStore } from '@/stores/checkout'
 import { useCartStore } from '@/stores/cart'
-import { useSessionStore } from '@/stores/session'
 import { paySampleOrder, showPayIncompleteModal, showPayErrorModal } from '@/utils/payOrder'
 
 const checkoutStore = useCheckoutStore()
 const cartStore = useCartStore()
-const sessionStore = useSessionStore()
 
 const draft = ref(null)
-const stores = ref([])
-const selectedStoreId = ref(null)
+const shopInfo = ref(null)
 const deliveryType = ref('pickup')
 const addresses = ref([])
 const selectedAddressId = ref(null)
@@ -110,24 +92,11 @@ const submitting = ref(false)
 
 const isSample = computed(() => draft.value?.orderType === ORDER_TYPES.SAMPLE)
 
-const selectedStore = computed(() =>
-  stores.value.find((s) => s.id === selectedStoreId.value) || draft.value?.store
-)
-
 const selectedAddress = computed(() =>
   addresses.value.find((a) => a.id === selectedAddressId.value)
 )
 
-const displayItems = computed(() => {
-  if (!draft.value) return []
-  if (draft.value.source !== 'cart') return draft.value.items || []
-  if (!selectedStoreId.value) return []
-  const map = checkoutStore.productStoreMap
-  return (draft.value.items || []).filter((item) => {
-    const storeIds = map[item.productId] || []
-    return storeIds.includes(selectedStoreId.value)
-  })
-})
+const displayItems = computed(() => draft.value?.items || [])
 
 const totalAmount = computed(() => {
   const sum = displayItems.value.reduce(
@@ -139,18 +108,12 @@ const totalAmount = computed(() => {
 
 const canSubmit = computed(() => {
   if (!displayItems.value.length) return false
-  if (draft.value?.source === 'cart' && !selectedStoreId.value) return false
   if (isSample.value && deliveryType.value === 'express' && !selectedAddressId.value) return false
   return true
 })
 
 function lineTotal(item) {
   return (Number(item.unitPrice) * Number(item.quantity)).toFixed(2)
-}
-
-function selectStore(store) {
-  selectedStoreId.value = store.id
-  sessionStore.setStore(store)
 }
 
 function onAddressPick(e) {
@@ -176,6 +139,15 @@ async function loadAddresses() {
   }
 }
 
+async function loadShopInfo() {
+  try {
+    const res = await getShopInfo()
+    shopInfo.value = res.data
+  } catch {
+    shopInfo.value = null
+  }
+}
+
 function initFromDraft() {
   const d = checkoutStore.getDraft()
   if (!d) {
@@ -183,23 +155,8 @@ function initFromDraft() {
     return
   }
   draft.value = d
-  selectedStoreId.value = d.storeId || null
   remark.value = ''
   deliveryType.value = 'pickup'
-}
-
-async function loadStoresForCart() {
-  const storeRes = await getStores()
-  stores.value = storeRes.data || []
-  const sessionId = sessionStore.selectedStore?.id
-  const inList = stores.value.some((s) => s.id === sessionId)
-  if (!selectedStoreId.value) {
-    selectedStoreId.value = inList ? sessionId : stores.value[0]?.id || null
-  }
-  if (selectedStoreId.value) {
-    const current = stores.value.find((s) => s.id === selectedStoreId.value)
-    if (current) sessionStore.setStore(current)
-  }
 }
 
 onMounted(async () => {
@@ -207,14 +164,8 @@ onMounted(async () => {
   initFromDraft()
   if (!draft.value) return
 
-  if (draft.value.source === 'cart') {
-    await loadStoresForCart()
-  } else if (draft.value.store) {
-    stores.value = [draft.value.store]
-  }
-
   if (isSample.value) {
-    await loadAddresses()
+    await Promise.all([loadShopInfo(), loadAddresses()])
   }
 })
 
@@ -232,7 +183,6 @@ async function submit() {
     return
   }
 
-  const storeId = draft.value.source === 'cart' ? selectedStoreId.value : draft.value.storeId
   const items = displayItems.value.map((item) => ({
     skuId: item.skuId,
     quantity: item.quantity,
@@ -242,7 +192,6 @@ async function submit() {
   try {
     const res = await createOrder({
       orderType: draft.value.orderType,
-      storeId,
       items,
       deliveryType: isSample.value ? deliveryType.value : undefined,
       addressId: isSample.value && deliveryType.value === 'express' ? selectedAddressId.value : undefined,
@@ -294,21 +243,6 @@ async function submit() {
   font-weight: 600;
   margin-bottom: 16rpx;
   display: block;
-}
-.store-row {
-  white-space: nowrap;
-}
-.store-chip {
-  display: inline-block;
-  padding: 12rpx 24rpx;
-  margin-right: 16rpx;
-  border: 1rpx solid #ddd;
-  border-radius: 32rpx;
-  font-size: 26rpx;
-}
-.store-chip.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
 }
 .delivery-row {
   display: flex;

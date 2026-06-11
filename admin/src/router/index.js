@@ -13,13 +13,7 @@ const routes = [
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true },
     children: [
-      { path: '', redirect: '/stores' },
-      {
-        path: 'stores',
-        name: 'Stores',
-        component: () => import('@/views/stores/StoreListView.vue'),
-        meta: { title: '门店管理' },
-      },
+      { path: '', redirect: '/products' },
       {
         path: 'categories',
         name: 'Categories',

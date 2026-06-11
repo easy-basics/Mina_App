@@ -9,7 +9,6 @@
         <text class="no">{{ o.orderNo }}</text>
         <text class="status" :class="statusClass(o)">{{ o.statusLabel }}</text>
       </view>
-      <text class="store">{{ o.store?.name }}</text>
       <view class="row bottom">
         <text class="amount">¥{{ o.totalAmount }}</text>
         <text class="time">{{ formatTime(o.createdAt) }}</text>
@@ -113,12 +112,6 @@ onPullDownRefresh(load)
 .status--warn {
   color: #e53935;
   font-weight: 600;
-}
-.store {
-  font-size: 28rpx;
-  color: #2d2a3e;
-  margin: 12rpx 0;
-  display: block;
 }
 .amount {
   color: #e53935;

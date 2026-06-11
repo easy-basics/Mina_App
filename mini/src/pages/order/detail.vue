@@ -5,15 +5,14 @@
       <text>{{ order.orderNo }}</text>
       <text class="label">状态</text>
       <text>{{ order.statusLabel }} · {{ order.payStatusLabel }}</text>
-      <text class="label">门店</text>
-      <text>{{ order.store?.name }}</text>
       <text v-if="order.orderType === 'sample'" class="label">配送方式</text>
       <text v-if="order.orderType === 'sample'">
         {{ order.deliveryType === 'express' ? '邮寄' : '自提' }}
       </text>
-      <text v-if="order.orderType === 'sample' && order.deliveryType === 'pickup' && order.store?.address" class="label">自提地址</text>
-      <text v-if="order.orderType === 'sample' && order.deliveryType === 'pickup' && order.store?.address">
-        {{ order.store.address }}
+      <text v-if="order.orderType === 'sample' && order.deliveryType === 'pickup' && order.pickup?.address" class="label">自提地址</text>
+      <text v-if="order.orderType === 'sample' && order.deliveryType === 'pickup' && order.pickup?.address">
+        {{ order.pickup.name }} {{ order.pickup.address }}
+        <text v-if="order.pickup.phone"> {{ order.pickup.phone }}</text>
       </text>
       <text v-if="order.orderType === 'sample' && order.deliveryType === 'express' && order.address" class="label">收货地址</text>
       <text v-if="order.orderType === 'sample' && order.deliveryType === 'express' && order.address">

@@ -3,10 +3,10 @@ const prisma = require('../../utils/prisma');
 const { success, fail } = require('../../utils/response');
 const miniUserMiddleware = require('../../middleware/miniUser');
 const { createMiniOrder } = require('../../services/miniOrderService');
+const { parsePickupSnapshot } = require('../../utils/shopConfig');
 const {
   SAMPLE_STATUS_LABELS,
   BULK_STATUS_LABELS,
-  PAY_STATUSES,
 } = require('../../constants/orders');
 
 const router = express.Router();
@@ -15,8 +15,10 @@ router.use(miniUserMiddleware);
 function serializeOrder(order) {
   const statusLabels =
     order.orderType === 'bulk' ? BULK_STATUS_LABELS : SAMPLE_STATUS_LABELS;
+  const { pickupSnapshot, ...rest } = order;
   return {
-    ...order,
+    ...rest,
+    pickup: parsePickupSnapshot(pickupSnapshot),
     totalAmount: Number(order.totalAmount),
     statusLabel: statusLabels[order.status] || order.status,
     payStatusLabel:
@@ -48,7 +50,6 @@ router.get('/', async (req, res, next) => {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          store: { select: { id: true, name: true } },
           _count: { select: { items: true } },
         },
       }),
@@ -75,7 +76,6 @@ router.get('/:id', async (req, res, next) => {
     const order = await prisma.order.findFirst({
       where: { id, userId: req.user.id },
       include: {
-        store: true,
         items: true,
       },
     });
@@ -99,7 +99,7 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const order = await createMiniOrder(req.user.id, req.body);
-    return success(res, order, '订单创建成功');
+    return success(res, serializeOrder(order), '订单创建成功');
   } catch (err) {
     if (err.status) return fail(res, err.message, err.status, err.status);
     return next(err);

@@ -2,12 +2,15 @@ const express = require('express');
 const prisma = require('../utils/prisma');
 const { success, fail } = require('../utils/response');
 const { getStatusesForType } = require('../constants/orders');
+const { parsePickupSnapshot } = require('../utils/shopConfig');
 
 const router = express.Router();
 
 function serializeOrder(order) {
+  const { pickupSnapshot, ...rest } = order;
   return {
-    ...order,
+    ...rest,
+    pickup: parsePickupSnapshot(pickupSnapshot),
     totalAmount: Number(order.totalAmount),
     items: order.items?.map((item) => ({
       ...item,
@@ -21,12 +24,11 @@ router.get('/', async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize, 10) || 20));
-    const { orderType, status, storeId, keyword } = req.query;
+    const { orderType, status, keyword } = req.query;
 
     const where = {
       ...(orderType ? { orderType } : {}),
       ...(status ? { status } : {}),
-      ...(storeId ? { storeId: parseInt(storeId, 10) } : {}),
       ...(keyword
         ? {
             OR: [
@@ -45,7 +47,6 @@ router.get('/', async (req, res, next) => {
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
-          store: { select: { id: true, name: true } },
           _count: { select: { items: true } },
         },
       }),
@@ -53,7 +54,10 @@ router.get('/', async (req, res, next) => {
     ]);
 
     return success(res, {
-      list: list.map((o) => ({ ...o, totalAmount: Number(o.totalAmount) })),
+      list: list.map((o) => ({
+        ...serializeOrder(o),
+        itemCount: o._count.items,
+      })),
       total,
       page,
       pageSize,
@@ -69,7 +73,6 @@ router.get('/:id', async (req, res, next) => {
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        store: true,
         items: true,
         logs: {
           orderBy: { createdAt: 'desc' },

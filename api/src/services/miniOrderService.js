@@ -1,6 +1,7 @@
 const prisma = require('../utils/prisma');
 const { generateOrderNo } = require('../utils/orderNo');
 const { ORDER_TYPES } = require('../constants/orders');
+const { buildPickupSnapshot } = require('../utils/shopConfig');
 
 async function resolveOrderItems(items) {
   const skuIds = items.map((i) => Number(i.skuId));
@@ -44,34 +45,9 @@ async function resolveOrderItems(items) {
   return { resolved, totalAmount };
 }
 
-async function validateStoreForProducts(storeId, productIds) {
-  const uniqueProductIds = [...new Set(productIds)];
-  const links = await prisma.productStore.findMany({
-    where: {
-      storeId,
-      productId: { in: uniqueProductIds },
-    },
-  });
-  if (links.length !== uniqueProductIds.length) {
-    const err = new Error('该门店不可售部分商品');
-    err.status = 400;
-    throw err;
-  }
-  const store = await prisma.store.findFirst({
-    where: { id: storeId, enabled: true },
-  });
-  if (!store) {
-    const err = new Error('门店不存在');
-    err.status = 400;
-    throw err;
-  }
-  return store;
-}
-
 async function createMiniOrder(userId, body) {
   const {
     orderType,
-    storeId,
     items,
     deliveryType,
     addressId,
@@ -79,20 +55,22 @@ async function createMiniOrder(userId, body) {
     clearCartSkuIds,
   } = body;
 
-  if (!orderType || !storeId || !items?.length) {
+  if (!orderType || !items?.length) {
     const err = new Error('订单信息不完整');
     err.status = 400;
     throw err;
   }
 
   const { resolved, totalAmount } = await resolveOrderItems(items);
-  const productIds = resolved.map((r) => r.productId);
-  const store = await validateStoreForProducts(Number(storeId), productIds);
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
+  const effectiveDeliveryType = deliveryType || (orderType === ORDER_TYPES.SAMPLE ? 'pickup' : null);
+
   let addressSnapshot = null;
-  if (deliveryType === 'express') {
+  let pickupSnapshot = null;
+
+  if (effectiveDeliveryType === 'express') {
     if (!addressId) {
       const err = new Error('邮寄请选择收货地址');
       err.status = 400;
@@ -107,6 +85,8 @@ async function createMiniOrder(userId, body) {
       throw err;
     }
     addressSnapshot = JSON.stringify(addr);
+  } else if (effectiveDeliveryType === 'pickup') {
+    pickupSnapshot = buildPickupSnapshot();
   }
 
   const isSample = orderType === ORDER_TYPES.SAMPLE;
@@ -117,13 +97,13 @@ async function createMiniOrder(userId, body) {
     data: {
       orderNo: generateOrderNo(),
       orderType,
-      storeId: store.id,
       userId,
       status,
       payStatus,
       totalAmount: isSample ? totalAmount : totalAmount,
-      deliveryType: deliveryType || (isSample ? 'pickup' : null),
+      deliveryType: effectiveDeliveryType,
       addressSnapshot,
+      pickupSnapshot,
       remark: remark?.trim() || null,
       customerName: user?.nickname || null,
       customerPhone: user?.phone || null,
@@ -137,7 +117,6 @@ async function createMiniOrder(userId, body) {
       },
     },
     include: {
-      store: true,
       items: true,
     },
   });
