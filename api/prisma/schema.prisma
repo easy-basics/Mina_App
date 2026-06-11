@@ -34,23 +34,6 @@ model LoginAttempt {
   @@map("login_attempts")
 }
 
-model Store {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(128)
-  address   String?  @db.VarChar(255)
-  phone     String?  @db.VarChar(32)
-  contact   String?  @db.VarChar(64)
-  enabled   Boolean  @default(true)
-  sort      Int      @default(0)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  productStores ProductStore[]
-  orders        Order[]
-
-  @@map("stores")
-}
-
 model Category {
   id        Int      @id @default(autoincrement())
   parentId  Int?     @map("parent_id")
@@ -78,7 +61,6 @@ model Product {
 
   category      Category            @relation(fields: [categoryId], references: [id])
   skus          ProductSku[]
-  productStores ProductStore[]
   detailImages  ProductDetailImage[]
   params        ProductParam[]
   favorites     Favorite[]
@@ -131,17 +113,6 @@ model ProductSku {
 
   @@index([productId])
   @@map("product_skus")
-}
-
-model ProductStore {
-  productId Int @map("product_id")
-  storeId   Int @map("store_id")
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-
-  @@id([productId, storeId])
-  @@map("product_stores")
 }
 
 model User {
@@ -216,13 +187,13 @@ model Order {
   id              Int      @id @default(autoincrement())
   orderNo         String   @unique @map("order_no") @db.VarChar(32)
   orderType       String   @map("order_type") @db.VarChar(16)
-  storeId         Int      @map("store_id")
   userId          Int?     @map("user_id")
   status          String   @db.VarChar(32)
   payStatus       String   @map("pay_status") @db.VarChar(32)
   totalAmount     Decimal  @map("total_amount") @db.Decimal(12, 2)
   deliveryType    String?  @map("delivery_type") @db.VarChar(16)
   addressSnapshot String?  @map("address_snapshot") @db.Text
+  pickupSnapshot  String?  @map("pickup_snapshot") @db.Text
   wxTransactionId String?  @map("wx_transaction_id") @db.VarChar(64)
   remark          String?  @db.Text
   customerName    String?  @map("customer_name") @db.VarChar(64)
@@ -230,13 +201,11 @@ model Order {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  store Store       @relation(fields: [storeId], references: [id])
   user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   items OrderItem[]
   logs  OrderLog[]
 
   @@index([orderType, status])
-  @@index([storeId])
   @@index([userId])
   @@map("orders")
 }

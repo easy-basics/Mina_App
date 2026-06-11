@@ -1,9 +1,5 @@
 <template>
   <view class="page">
-    <view v-if="sessionStore.selectedStore" class="store-bar">
-      <text class="store-label">当前门店</text>
-      <text class="store-name">{{ sessionStore.selectedStore.name }}</text>
-    </view>
     <view class="search-bar">
       <input
         v-model="keyword"
@@ -40,12 +36,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
 import { getCategories, getProducts } from '@/api/catalog'
-import { useSessionStore } from '@/stores/session'
 import ProductCard from '@/components/ProductCard.vue'
-
-const sessionStore = useSessionStore()
 
 const categories = ref([])
 const products = ref([])
@@ -101,14 +93,6 @@ function goDetail(id) {
 }
 
 onMounted(loadCategories)
-
-onShow(() => {
-  if (sessionStore.selectedStore?.name) {
-    uni.setNavigationBarTitle({ title: sessionStore.selectedStore.name })
-  } else {
-    uni.setNavigationBarTitle({ title: '浏览商品' })
-  }
-})
 </script>
 
 <style scoped>
@@ -148,23 +132,6 @@ onShow(() => {
   font-weight: 600;
   background: var(--color-primary-bg);
   border-left-color: var(--color-primary);
-}
-.store-bar {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 16rpx 24rpx;
-  background: var(--color-primary-bg);
-  border-bottom: 1rpx solid #ffe0d0;
-}
-.store-label {
-  font-size: 24rpx;
-  color: #999;
-}
-.store-name {
-  font-size: 28rpx;
-  color: var(--color-primary);
-  font-weight: 600;
 }
 .product-panel {
   flex: 1;

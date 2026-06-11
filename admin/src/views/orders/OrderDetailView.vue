@@ -10,7 +10,14 @@
         <el-descriptions-item label="类型">
           {{ order.orderType === 'sample' ? '布版' : '大货' }}
         </el-descriptions-item>
-        <el-descriptions-item label="门店">{{ order.store?.name }}</el-descriptions-item>
+        <el-descriptions-item label="自提信息" :span="2">
+          <template v-if="order.deliveryType === 'pickup' && order.pickup">
+            {{ order.pickup.name }}
+            <span v-if="order.pickup.address"> · {{ order.pickup.address }}</span>
+            <span v-if="order.pickup.phone"> · {{ order.pickup.phone }}</span>
+          </template>
+          <template v-else>-</template>
+        </el-descriptions-item>
         <el-descriptions-item label="客户">
           {{ order.customerName || '-' }} {{ order.customerPhone || '' }}
         </el-descriptions-item>

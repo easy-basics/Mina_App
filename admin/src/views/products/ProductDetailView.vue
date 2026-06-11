@@ -27,13 +27,6 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="关联门店">
-                <el-select v-model="form.storeIds" multiple placeholder="选择可售门店" style="width: 100%">
-                  <el-option v-for="s in stores" :key="s.id" :label="s.name" :value="s.id" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="状态">
                 <el-switch v-model="form.enabled" active-text="上架" inactive-text="下架" />
               </el-form-item>
@@ -218,7 +211,6 @@ import Sortable from 'sortablejs'
 import {
   getProduct,
   updateProduct,
-  updateProductStores,
   createSku,
   updateSku,
   deleteSku,
@@ -234,7 +226,6 @@ import {
 } from '@/api/products'
 import { useTableDragSort } from '@/composables/useTableDragSort'
 import { getAllCategories } from '@/api/categories'
-import { getAllStores } from '@/api/stores'
 import { uploadFile } from '@/api/upload'
 import { resolveMediaUrl, toStoredMediaPath } from '@/utils/media'
 
@@ -248,7 +239,6 @@ const skus = ref([])
 const detailImages = ref([])
 const params = ref([])
 const categories = ref([])
-const stores = ref([])
 const activeTab = ref('basic')
 const formRef = ref()
 const skuFormRef = ref()
@@ -276,7 +266,6 @@ const form = reactive({
   code: '',
   name: '',
   enabled: true,
-  storeIds: [],
 })
 
 const skuForm = reactive({
@@ -308,24 +297,21 @@ const paramRules = {
 async function loadData() {
   loading.value = true
   try {
-    const [productRes, catRes, storeRes] = await Promise.all([
+    const [productRes, catRes] = await Promise.all([
       getProduct(productId.value),
       getAllCategories(),
-      getAllStores(),
     ])
     product.value = productRes.data
     skus.value = productRes.data.skus || []
     detailImages.value = productRes.data.detailImages || []
     params.value = (productRes.data.params || []).map((p) => ({ ...p }))
     categories.value = catRes.data
-    stores.value = storeRes.data
 
     Object.assign(form, {
       categoryId: productRes.data.categoryId,
       code: productRes.data.code,
       name: productRes.data.name,
       enabled: productRes.data.enabled,
-      storeIds: productRes.data.storeIds || [],
     })
   } finally {
     loading.value = false
@@ -343,7 +329,6 @@ async function saveBasic() {
       sort: product.value?.sort ?? 0,
       enabled: form.enabled,
     })
-    await updateProductStores(productId.value, form.storeIds)
     ElMessage.success('保存成功')
     loadData()
   } finally {

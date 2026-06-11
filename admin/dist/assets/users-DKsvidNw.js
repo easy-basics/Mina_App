@@ -1,0 +1,1 @@
+import{n as e}from"./index-gGVl_zOS.js";function t(t){return e.get(`/users`,{params:t})}function n(t){return e.get(`/users/${t}`)}export{t as n,n as t};

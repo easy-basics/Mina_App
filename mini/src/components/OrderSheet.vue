@@ -2,28 +2,9 @@
   <view v-if="visible" class="mask" @click="close">
     <view class="sheet" @click.stop>
       <view class="sheet-header">
-        <text class="sheet-title">请选择门店</text>
+        <text class="sheet-title">{{ sectionLabel }}</text>
         <text class="sheet-close" @click="close">×</text>
       </view>
-      <scroll-view v-if="stores.length" scroll-x class="store-row">
-        <view
-          v-for="s in stores"
-          :key="s.id"
-          class="store-chip-wrap"
-        >
-          <text v-if="isLastSelectedStore(s.id)" class="last-badge">上次选中</text>
-          <view
-            class="store-chip"
-            :class="{ active: s.id === selectedStoreId }"
-            @click="selectStore(s)"
-          >
-            {{ s.name }}
-          </view>
-        </view>
-      </scroll-view>
-      <view v-else class="store-empty">该商品暂无可选门店</view>
-
-      <view class="section-title">{{ sectionLabel }}</view>
       <view class="search-row">
         <text class="search-icon">🔍</text>
         <input v-model="colorKeyword" class="color-search" placeholder="搜索颜色" />
@@ -63,11 +44,9 @@
 import { ref, computed, watch } from 'vue'
 import { createOrder } from '@/api/order'
 import { addToCart } from '@/api/cart'
-import { getStores } from '@/api/catalog'
 import { ensureLogin } from '@/utils/request'
 import { ORDER_TYPES } from '@/constants/orders'
 import { useCartStore } from '@/stores/cart'
-import { useSessionStore } from '@/stores/session'
 import { useCheckoutStore } from '@/stores/checkout'
 
 const props = defineProps({
@@ -78,14 +57,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'success'])
 
-const stores = ref([])
-const selectedStoreId = ref(null)
 const colorKeyword = ref('')
 const quantities = ref({})
 const addingCart = ref(false)
 const submitting = ref(false)
 const cartStore = useCartStore()
-const sessionStore = useSessionStore()
 const checkoutStore = useCheckoutStore()
 
 const sectionLabel = computed(() =>
@@ -111,32 +87,10 @@ const buyNowTotal = computed(() => {
   return total > 0 ? total.toFixed(2) : ''
 })
 
-function isLastSelectedStore(storeId) {
-  return sessionStore.selectedStore?.id === storeId
-}
-
-function selectStore(store) {
-  selectedStoreId.value = store.id
-  sessionStore.setStore(store)
-}
-
 watch(
   () => props.visible,
-  async (v) => {
+  (v) => {
     if (v && props.product) {
-      try {
-        const storeRes = await getStores(props.product.id)
-        stores.value = storeRes.data || []
-      } catch {
-        stores.value = props.product.stores || []
-      }
-      const sessionId = sessionStore.selectedStore?.id
-      const inList = stores.value.some((s) => s.id === sessionId)
-      selectedStoreId.value = inList ? sessionId : stores.value[0]?.id || null
-      if (selectedStoreId.value) {
-        const current = stores.value.find((s) => s.id === selectedStoreId.value)
-        if (current) sessionStore.setStore(current)
-      }
       quantities.value = {}
       colorKeyword.value = ''
     }
@@ -168,10 +122,6 @@ function validateSelection() {
   const items = buildItems()
   if (!items.length) {
     uni.showToast({ title: '请选择数量', icon: 'none' })
-    return null
-  }
-  if (!selectedStoreId.value) {
-    uni.showToast({ title: '请选择门店', icon: 'none' })
     return null
   }
   return items
@@ -206,13 +156,10 @@ function buyNow() {
   if (!items) return
 
   const skuMap = new Map((props.product?.skus || []).map((s) => [s.id, s]))
-  const store = stores.value.find((s) => s.id === selectedStoreId.value)
 
   checkoutStore.setDraft({
     source: 'product',
     orderType: ORDER_TYPES.SAMPLE,
-    storeId: selectedStoreId.value,
-    store,
     items: items.map((item) => {
       const sku = skuMap.get(item.skuId)
       return {
@@ -240,7 +187,6 @@ async function submitBulk() {
   try {
     const res = await createOrder({
       orderType: ORDER_TYPES.BULK,
-      storeId: selectedStoreId.value,
       items,
       remark: '',
     })
@@ -283,57 +229,11 @@ async function submitBulk() {
   font-size: 30rpx;
   font-weight: 600;
 }
-.store-empty {
-  font-size: 26rpx;
-  color: #999;
-  padding: 8rpx 0 24rpx;
-}
 .sheet-close {
   font-size: 44rpx;
   color: #999;
   line-height: 1;
   padding: 0 8rpx;
-}
-.store-row {
-  white-space: nowrap;
-  margin-bottom: 24rpx;
-}
-.store-chip-wrap {
-  display: inline-block;
-  position: relative;
-  margin-right: 16rpx;
-  vertical-align: top;
-  padding-top: 28rpx;
-}
-.last-badge {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 20rpx;
-  color: #fff;
-  background: #ff9800;
-  padding: 2rpx 12rpx;
-  border-radius: 8rpx;
-  white-space: nowrap;
-  z-index: 1;
-}
-.store-chip {
-  display: inline-block;
-  padding: 12rpx 24rpx;
-  border: 1rpx solid #ddd;
-  border-radius: 32rpx;
-  font-size: 26rpx;
-  color: #333;
-}
-.store-chip.active {
-  border-color: #e53935;
-  color: #e53935;
-}
-.section-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  margin-bottom: 12rpx;
 }
 .search-row {
   display: flex;

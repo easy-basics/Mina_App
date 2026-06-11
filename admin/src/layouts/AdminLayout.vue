@@ -6,10 +6,6 @@
         布行管理后台
       </div>
       <el-menu :default-active="activeMenu" router class="layout-menu">
-        <el-menu-item index="/stores">
-          <el-icon><Shop /></el-icon>
-          <span>门店管理</span>
-        </el-menu-item>
         <el-menu-item index="/categories">
           <el-icon><Menu /></el-icon>
           <span>系列管理</span>
@@ -47,7 +43,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Shop, Menu, Goods, User, List } from '@element-plus/icons-vue'
+import { Menu, Goods, User, List } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()

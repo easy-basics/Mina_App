@@ -2,6 +2,7 @@ const express = require('express');
 const prisma = require('../../utils/prisma');
 const { success, fail } = require('../../utils/response');
 const { toAbsoluteUrl } = require('../../utils/url');
+const { getShopInfo } = require('../../utils/shopConfig');
 const router = express.Router();
 
 function mapProductListItem(p) {
@@ -18,6 +19,14 @@ function mapProductListItem(p) {
 function mapSku(s) {
   return { ...s, price: Number(s.price) };
 }
+
+router.get('/shop-info', async (req, res, next) => {
+  try {
+    return success(res, getShopInfo());
+  } catch (err) {
+    return next(err);
+  }
+});
 
 router.get('/categories', async (req, res, next) => {
   try {
@@ -81,9 +90,6 @@ router.get('/products/:id', async (req, res, next) => {
         },
         detailImages: { orderBy: [{ sort: 'asc' }, { id: 'asc' }] },
         params: { orderBy: [{ sort: 'asc' }, { id: 'asc' }] },
-        productStores: {
-          include: { store: { select: { id: true, name: true, address: true, phone: true } } },
-        },
       },
     });
 
@@ -129,34 +135,8 @@ router.get('/products/:id', async (req, res, next) => {
       params: product.params,
       skus,
       minPrice,
-      stores: product.productStores
-        .map((ps) => ps.store)
-        .filter((s) => s),
       favorited,
     });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.get('/stores', async (req, res, next) => {
-  try {
-    const productId = req.query.productId ? parseInt(req.query.productId, 10) : null;
-    if (productId) {
-      const links = await prisma.productStore.findMany({
-        where: { productId },
-        include: { store: true },
-      });
-      return success(
-        res,
-        links.map((l) => l.store).filter((s) => s.enabled)
-      );
-    }
-    const list = await prisma.store.findMany({
-      where: { enabled: true },
-      orderBy: [{ sort: 'asc' }, { id: 'asc' }],
-    });
-    return success(res, list);
   } catch (err) {
     return next(err);
   }

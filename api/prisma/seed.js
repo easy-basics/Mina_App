@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 const { initDefaultParams } = require('../src/services/productExtrasService');
+const { buildPickupSnapshot } = require('../src/utils/shopConfig');
 const { seedCatalog } = require('./lib/seedCatalog');
 
 const prisma = new PrismaClient();
@@ -19,19 +20,6 @@ async function main() {
   });
 
   console.log(`Admin ready: ${admin.username}`);
-
-  const store = await prisma.store.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      name: '恒泰布业',
-      address: '示例地址',
-      phone: '13800000000',
-      contact: '张经理',
-      enabled: true,
-      sort: 0,
-    },
-  });
 
   const category = await prisma.category.upsert({
     where: { id: 1 },
@@ -54,12 +42,6 @@ async function main() {
       enabled: true,
       sort: 0,
     },
-  });
-
-  await prisma.productStore.upsert({
-    where: { productId_storeId: { productId: product.id, storeId: store.id } },
-    update: {},
-    create: { productId: product.id, storeId: store.id },
   });
 
   await initDefaultParams(product.id);
@@ -115,10 +97,11 @@ async function main() {
       data: {
         orderNo: 'M202605160001',
         orderType: 'sample',
-        storeId: store.id,
         status: 'paid',
         payStatus: 'paid',
         totalAmount: 50,
+        deliveryType: 'pickup',
+        pickupSnapshot: buildPickupSnapshot(),
         customerName: '李先生',
         customerPhone: '13900001111',
         remark: '布版订单示例',
@@ -154,7 +137,6 @@ async function main() {
       data: {
         orderNo: 'M202605160002',
         orderType: 'bulk',
-        storeId: store.id,
         status: 'following',
         payStatus: 'offline',
         totalAmount: 0,
@@ -178,7 +160,7 @@ async function main() {
     });
   }
 
-  await seedCatalog(prisma, store.id);
+  await seedCatalog(prisma);
 
   console.log('Seed completed.');
 }

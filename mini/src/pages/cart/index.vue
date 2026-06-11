@@ -50,7 +50,6 @@ import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
 import { useCheckoutStore } from '@/stores/checkout'
 import { updateCartItem, removeCartItem } from '@/api/cart'
-import { getProduct } from '@/api/catalog'
 import { ORDER_TYPES } from '@/constants/orders'
 import { ensureLogin } from '@/utils/request'
 import { resolveImageUrl } from '@/utils/media'
@@ -96,21 +95,9 @@ async function openCheckout(orderType) {
   const cartItems = orderType === ORDER_TYPES.SAMPLE ? sampleItems.value : bulkItems.value
   if (!cartItems.length) return
 
-  const productIds = [...new Set(cartItems.map((i) => i.product.id))]
-  const map = {}
-  await Promise.all(
-    productIds.map(async (pid) => {
-      const res = await getProduct(pid)
-      map[pid] = (res.data.stores || []).map((s) => s.id)
-    })
-  )
-
-  checkoutStore.setProductStoreMap(map)
   checkoutStore.setDraft({
     source: 'cart',
     orderType,
-    storeId: null,
-    store: null,
     items: cartItems.map((item) => ({
       skuId: item.skuId,
       specName: item.specName,

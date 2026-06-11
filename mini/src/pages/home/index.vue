@@ -30,16 +30,6 @@
         </view>
         <text class="menu-text">浏览商品</text>
       </view>
-      <view class="menu-item" hover-class="menu-item--hover" @click="goStoreSelect">
-        <view class="menu-icon">
-          <view class="icon-cart">
-            <view class="cart-body" />
-            <view class="cart-wheel cart-wheel-l" />
-            <view class="cart-wheel cart-wheel-r" />
-          </view>
-        </view>
-        <text class="menu-text">进店下单</text>
-      </view>
       <view class="menu-item" hover-class="menu-item--hover" @click="goMine">
         <view class="menu-icon">
           <view class="icon-user">
@@ -102,10 +92,6 @@ const showcaseProducts = [
 
 function goCatalog() {
   uni.navigateTo({ url: '/pages/index' })
-}
-
-function goStoreSelect() {
-  uni.navigateTo({ url: '/pages/store/select' })
 }
 
 function goMine() {

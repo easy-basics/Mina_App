@@ -21,12 +21,6 @@
       }
     },
     {
-      "path": "pages/store/select",
-      "style": {
-        "navigationBarTitleText": "选择门店"
-      }
-    },
-    {
       "path": "pages/index",
       "style": {
         "navigationBarTitleText": "浏览商品"
