@@ -16,6 +16,9 @@
           />
           <span v-else class="avatar-fallback avatar-fallback--lg">{{ userInitial }}</span>
         </el-descriptions-item>
+        <el-descriptions-item label="OpenID" :span="2">
+          <span class="openid">{{ user.openid || '-' }}</span>
+        </el-descriptions-item>
         <el-descriptions-item label="昵称">{{ user.nickname || '-' }}</el-descriptions-item>
         <el-descriptions-item label="手机号">{{ user.phone || '-' }}</el-descriptions-item>
         <el-descriptions-item label="姓名">{{ user.realName || '-' }}</el-descriptions-item>
@@ -111,3 +114,11 @@ async function loadData() {
 
 onMounted(loadData)
 </script>
+
+<style scoped>
+.openid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+</style>
