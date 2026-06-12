@@ -3,6 +3,14 @@ const { toAbsoluteUrl, toRelativeMediaPath } = require('../utils/url');
 
 const SHOP_PROFILE_ID = 1;
 
+function assertShopProfileClient() {
+  if (!prisma.shopProfile?.findUnique) {
+    const err = new Error('服务端 Prisma Client 未更新，请执行 npx prisma generate 后重启');
+    err.status = 503;
+    throw err;
+  }
+}
+
 function getEnvDefaults() {
   return {
     name: process.env.SHOP_NAME || '',
@@ -49,6 +57,7 @@ function parseCoord(value) {
 }
 
 async function getShopProfile() {
+  assertShopProfileClient();
   let profile = await prisma.shopProfile.findUnique({ where: { id: SHOP_PROFILE_ID } });
   if (!profile) {
     const defaults = getEnvDefaults();

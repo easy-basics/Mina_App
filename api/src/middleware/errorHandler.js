@@ -20,6 +20,7 @@ function errorHandler(err, req, res, next) {
     || (prismaMsg.includes('Unknown field') && prismaMsg.includes('User'))
     || prismaMsg.includes('Unknown arg')
     || (prismaMsg.includes('Unknown field') && prismaMsg.includes('showInHome'))
+    || prismaMsg.includes("Cannot read properties of undefined (reading 'findUnique')")
   ) {
     console.error('[schema] 请在服务器执行: npx prisma migrate deploy && npx prisma generate');
     return fail(res, '数据库未同步，请联系管理员执行 migrate deploy 与 prisma generate 后重启服务', 503, 503);
