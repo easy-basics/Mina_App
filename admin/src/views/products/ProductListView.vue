@@ -2,7 +2,7 @@
   <div class="page-card">
     <div class="toolbar">
       <div class="toolbar-left">
-        <template v-if="!sortMode">
+        <template v-if="!sortMode && !homeSortMode">
           <el-select
             v-model="query.categoryId"
             placeholder="选择系列"
@@ -22,7 +22,7 @@
           />
           <el-button type="primary" @click="loadData">查询</el-button>
         </template>
-        <template v-else>
+        <template v-else-if="sortMode">
           <el-select
             v-model="sortCategoryId"
             placeholder="选择要排序的系列"
@@ -33,20 +33,24 @@
           </el-select>
           <p class="sort-mode-tip">拖拽左侧手柄调整该系列下商品顺序，松手后自动保存</p>
         </template>
+        <template v-else>
+          <p class="sort-mode-tip">拖拽左侧手柄调整首页展示商品顺序，松手后自动保存</p>
+        </template>
       </div>
       <div>
-        <template v-if="sortMode">
+        <template v-if="sortMode || homeSortMode">
           <el-button @click="exitSortMode">完成排序</el-button>
         </template>
         <template v-else>
           <el-button @click="enterSortMode">排序</el-button>
+          <el-button @click="enterHomeSortMode">首页展示排序</el-button>
           <el-button type="primary" @click="openDialog()">新增商品</el-button>
         </template>
       </div>
     </div>
 
     <el-table ref="tableRef" v-loading="loading" :data="list" border stripe row-key="id">
-      <el-table-column v-if="sortMode" width="52" align="center">
+      <el-table-column v-if="sortMode || homeSortMode" width="52" align="center">
         <template #default>
           <el-icon class="drag-handle" title="拖拽排序"><Rank /></el-icon>
         </template>
@@ -62,16 +66,21 @@
       <el-table-column v-if="!sortMode" label="系列" width="120">
         <template #default="{ row }">{{ row.category?.name }}</template>
       </el-table-column>
-      <el-table-column prop="sort" label="排序" width="80" />
+      <el-table-column :prop="homeSortMode ? 'homeSort' : 'sort'" :label="homeSortMode ? '首页排序' : '排序'" width="90" />
       <el-table-column label="SKU数" width="80">
         <template #default="{ row }">{{ row._count?.skus ?? 0 }}</template>
+      </el-table-column>
+      <el-table-column v-if="!sortMode && !homeSortMode" label="首页展示" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.showInHome ? 'warning' : 'info'">{{ row.showInHome ? '展示中' : '未展示' }}</el-tag>
+        </template>
       </el-table-column>
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '上架' : '下架' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column v-if="!sortMode" label="操作" width="200" fixed="right">
+      <el-table-column v-if="!sortMode && !homeSortMode" label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="$router.push(`/products/${row.id}`)">详情/SKU</el-button>
           <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
@@ -80,9 +89,12 @@
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="!loading && list.length === 0" :description="sortMode ? '该系列暂无商品' : '暂无商品数据'" />
+    <el-empty
+      v-if="!loading && list.length === 0"
+      :description="homeSortMode ? '暂无首页展示商品' : sortMode ? '该系列暂无商品' : '暂无商品数据'"
+    />
 
-    <div v-if="!sortMode" class="pager">
+    <div v-if="!sortMode && !homeSortMode" class="pager">
       <el-pagination
         v-model:current-page="query.page"
         v-model:page-size="query.pageSize"
@@ -115,6 +127,9 @@
         <el-form-item label="状态">
           <el-switch v-model="form.enabled" active-text="上架" inactive-text="下架" />
         </el-form-item>
+        <el-form-item label="首页展示">
+          <el-switch v-model="form.showInHome" active-text="展示" inactive-text="隐藏" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -125,13 +140,15 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, nextTick } from 'vue'
+import { computed, onMounted, reactive, ref, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Rank } from '@element-plus/icons-vue'
 import {
   getProducts,
   getProductSortList,
+  getHomeProductSortList,
   sortProducts,
+  sortHomeProducts,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -144,6 +161,7 @@ import { useTableDragSort } from '@/composables/useTableDragSort'
 const loading = ref(false)
 const submitting = ref(false)
 const sortMode = ref(false)
+const homeSortMode = ref(false)
 const sortCategoryId = ref(null)
 const list = ref([])
 const total = ref(0)
@@ -160,6 +178,7 @@ const form = reactive({
   name: '',
   coverImage: '',
   enabled: true,
+  showInHome: false,
 })
 
 const rules = {
@@ -202,6 +221,17 @@ async function loadSortList() {
   }
 }
 
+async function loadHomeSortList() {
+  loading.value = true
+  try {
+    const res = await getHomeProductSortList()
+    list.value = res.data
+    nextTick(() => dragSort.init())
+  } finally {
+    loading.value = false
+  }
+}
+
 async function enterSortMode() {
   if (!categories.value.length) {
     await loadCategories()
@@ -215,8 +245,14 @@ async function enterSortMode() {
   await loadSortList()
 }
 
+async function enterHomeSortMode() {
+  homeSortMode.value = true
+  await loadHomeSortList()
+}
+
 function exitSortMode() {
   sortMode.value = false
+  homeSortMode.value = false
   dragSort.destroy()
   loadData()
 }
@@ -224,8 +260,14 @@ function exitSortMode() {
 const dragSort = useTableDragSort({
   tableRef,
   listRef: list,
-  enabledRef: sortMode,
+  enabledRef: computed(() => sortMode.value || homeSortMode.value),
   onSave: async (items) => {
+    if (homeSortMode.value) {
+      await sortHomeProducts(items)
+      list.value = list.value.map((row, i) => ({ ...row, homeSort: i }))
+      ElMessage.success('首页展示排序已更新')
+      return
+    }
     await sortProducts(sortCategoryId.value, items)
     list.value = list.value.map((row, i) => ({ ...row, sort: i }))
     ElMessage.success('排序已更新')
@@ -240,6 +282,7 @@ function openDialog(row) {
     name: row?.name || '',
     coverImage: row?.coverImage || '',
     enabled: row?.enabled ?? true,
+    showInHome: row?.showInHome ?? false,
   })
   dialogVisible.value = true
 }

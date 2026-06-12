@@ -136,19 +136,15 @@ onMounted(loadCategories)
 .product-panel {
   flex: 1;
   height: 100%;
-  padding: 16rpx;
+  padding: 18rpx 16rpx 24rpx;
 }
 .product-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
+  flex-direction: column;
+  gap: 18rpx;
 }
 .grid-item {
-  width: calc(50% - 8rpx);
-}
-
-.grid-item :deep(.cover) {
-  height: 240rpx;
+  width: 100%;
 }
 .empty,
 .loading {

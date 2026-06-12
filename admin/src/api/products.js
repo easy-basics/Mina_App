@@ -8,8 +8,16 @@ export function getProductSortList(categoryId) {
   return request.get('/products/sort-list', { params: { categoryId } })
 }
 
+export function getHomeProductSortList() {
+  return request.get('/products/home-sort-list')
+}
+
 export function sortProducts(categoryId, items) {
   return request.put('/products/sort', { categoryId, items })
+}
+
+export function sortHomeProducts(items) {
+  return request.put('/products/home-sort', { items })
 }
 
 export function getProduct(id) {
