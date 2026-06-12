@@ -1,10 +1,10 @@
 const { initDefaultParams } = require('../../src/services/productExtrasService');
-const {
-  CATEGORIES,
-  coverPath,
-  detailPaths,
-} = require('../data/catalogSeedData');
+const { CATEGORIES } = require('../data/catalogSeedData');
 const { prepareSeedImages } = require('./prepareSeedImages');
+
+function isLegacySeedPath(url) {
+  return Boolean(url && url.startsWith('/uploads/seed/'));
+}
 
 async function ensureCategory(prisma, { name, sort }) {
   let category = await prisma.category.findFirst({ where: { name, parentId: null } });
@@ -19,8 +19,12 @@ async function ensureCategory(prisma, { name, sort }) {
   return category;
 }
 
-async function ensureProduct(prisma, categoryId, product) {
-  const cover = coverPath(product.code);
+async function ensureProduct(prisma, categoryId, product, imageEntry) {
+  if (!imageEntry?.cover) {
+    throw new Error(`No cover image in manifest for product ${product.code}`);
+  }
+
+  const cover = imageEntry.cover;
   const existing = await prisma.product.findMany({ where: { code: product.code } });
 
   if (existing.length === 0) {
@@ -41,7 +45,9 @@ async function ensureProduct(prisma, categoryId, product) {
   let primary = existing[0];
   for (const row of existing) {
     const updates = {};
-    if (!row.coverImage) updates.coverImage = cover;
+    if (!row.coverImage || isLegacySeedPath(row.coverImage)) {
+      updates.coverImage = cover;
+    }
     if (row.categoryId !== categoryId) updates.categoryId = categoryId;
     if (Object.keys(updates).length) {
       await prisma.product.update({ where: { id: row.id }, data: updates });
@@ -74,20 +80,36 @@ async function ensureParams(prisma, productId, params) {
   }
 }
 
-async function ensureDetailImages(prisma, productId, code) {
-  const count = await prisma.productDetailImage.count({ where: { productId } });
-  if (count > 0) return;
+async function ensureDetailImages(prisma, productId, details) {
+  if (!details?.length) return;
 
-  const urls = detailPaths(code);
+  const existing = await prisma.productDetailImage.findMany({
+    where: { productId },
+    orderBy: [{ sort: 'asc' }, { id: 'asc' }],
+  });
+
+  if (existing.length === 0) {
+    await prisma.productDetailImage.createMany({
+      data: details.map((url, sort) => ({ productId, url, sort })),
+    });
+    return;
+  }
+
+  const hasLegacy = existing.some((img) => isLegacySeedPath(img.url));
+  if (!hasLegacy) return;
+
+  await prisma.productDetailImage.deleteMany({ where: { productId } });
   await prisma.productDetailImage.createMany({
-    data: urls.map((url, sort) => ({ productId, url, sort })),
+    data: details.map((url, sort) => ({ productId, url, sort })),
   });
 }
 
-async function ensureDetailImagesForCode(prisma, code) {
+async function ensureDetailImagesForCode(prisma, code, imageEntry) {
+  if (!imageEntry?.details?.length) return;
+
   const products = await prisma.product.findMany({ where: { code } });
   for (const row of products) {
-    await ensureDetailImages(prisma, row.id, code);
+    await ensureDetailImages(prisma, row.id, imageEntry.details);
   }
 }
 
@@ -114,14 +136,15 @@ async function ensureSkus(prisma, productId, skus) {
 async function seedCatalog(prisma) {
   console.log('Seeding catalog...');
 
-  await prepareSeedImages();
+  const manifest = await prepareSeedImages();
 
   for (const cat of CATEGORIES) {
     const category = await ensureCategory(prisma, cat);
     for (const product of cat.products) {
-      const row = await ensureProduct(prisma, category.id, product);
+      const imageEntry = manifest[product.code];
+      const row = await ensureProduct(prisma, category.id, product, imageEntry);
       await ensureParams(prisma, row.id, product.params);
-      await ensureDetailImagesForCode(prisma, product.code);
+      await ensureDetailImagesForCode(prisma, product.code, imageEntry);
       await ensureSkus(prisma, row.id, product.skus);
     }
   }

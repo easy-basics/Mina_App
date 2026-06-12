@@ -11,7 +11,5 @@ api/certs/*
 api/LOCAL_CREDENTIALS.md
 api/uploads/*
 !api/uploads/.gitkeep
-!api/uploads/seed/
-!api/uploads/seed/**
 .DS_Store
 *.log

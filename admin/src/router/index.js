@@ -62,6 +62,12 @@ const routes = [
         component: () => import('@/views/shop/ShopSettingsView.vue'),
         meta: { title: '门店设置' },
       },
+      {
+        path: 'media-cleanup',
+        name: 'MediaCleanup',
+        component: () => import('@/views/media/MediaCleanupView.vue'),
+        meta: { title: '媒体清理' },
+      },
     ],
   },
 ]

@@ -26,6 +26,10 @@
           <el-icon><Location /></el-icon>
           <span>门店设置</span>
         </el-menu-item>
+        <el-menu-item index="/media-cleanup">
+          <el-icon><Delete /></el-icon>
+          <span>媒体清理</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
@@ -47,7 +51,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Menu, Goods, User, List, Location } from '@element-plus/icons-vue'
+import { Menu, Goods, User, List, Location, Delete } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -59,6 +63,7 @@ const activeMenu = computed(() => {
   if (route.path.startsWith('/users')) return '/users'
   if (route.path.startsWith('/orders')) return '/orders'
   if (route.path.startsWith('/shop')) return '/shop'
+  if (route.path.startsWith('/media-cleanup')) return '/media-cleanup'
   return route.path
 })
 

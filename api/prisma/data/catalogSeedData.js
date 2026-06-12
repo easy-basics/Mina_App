@@ -1,6 +1,6 @@
 /**
  * 商品目录种子数据：5 系列 × 4 商品 × 5–6 颜色 SKU
- * imageSlot 由 prepareSeedImages 映射到 /uploads/seed/{code}-cover.jpg 等文件
+ * imageSlot 由 prepareSeedImages 映射为 hash 文件 URL（/uploads/{sha256}.jpg）
  */
 
 const BASE_SKUS_5 = [
@@ -347,17 +347,6 @@ const REMOTE_IMAGE_SOURCES = [
   'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80',
 ];
 
-function coverPath(code) {
-  return `/uploads/seed/${code}-cover.jpg`;
-}
-
-function detailPaths(code) {
-  return [
-    `/uploads/seed/${code}-detail-1.jpg`,
-    `/uploads/seed/${code}-detail-2.jpg`,
-  ];
-}
-
 function getAllProducts() {
   return CATEGORIES.flatMap((cat) =>
     cat.products.map((p) => ({ ...p, categoryName: cat.name }))
@@ -368,7 +357,5 @@ module.exports = {
   CATEGORIES,
   LOCAL_IMAGE_SOURCES,
   REMOTE_IMAGE_SOURCES,
-  coverPath,
-  detailPaths,
   getAllProducts,
 };
