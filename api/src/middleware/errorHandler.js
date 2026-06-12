@@ -18,9 +18,11 @@ function errorHandler(err, req, res, next) {
     || prismaMsg.includes('Unknown column')
     || prismaMsg.includes('does not exist in the current database')
     || (prismaMsg.includes('Unknown field') && prismaMsg.includes('User'))
+    || prismaMsg.includes('Unknown arg')
+    || (prismaMsg.includes('Unknown field') && prismaMsg.includes('showInHome'))
   ) {
     console.error('[schema] 请在服务器执行: npx prisma migrate deploy && npx prisma generate');
-    return fail(res, '数据库未同步，请联系管理员执行 migrate deploy', 503, 503);
+    return fail(res, '数据库未同步，请联系管理员执行 migrate deploy 与 prisma generate 后重启服务', 503, 503);
   }
 
   if (err.name === 'MulterError') {
