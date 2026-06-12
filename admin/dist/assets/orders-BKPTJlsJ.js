@@ -1,0 +1,1 @@
+import{n as e}from"./index-BtuafNhM.js";function t(t){return e.get(`/orders`,{params:t})}function n(t){return e.get(`/orders/${t}`)}function r(t,n){return e.patch(`/orders/${t}/status`,{status:n})}function i(t,n){return e.post(`/orders/${t}/logs`,{content:n})}export{r as i,n,t as r,i as t};

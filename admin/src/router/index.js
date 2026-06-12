@@ -56,6 +56,12 @@ const routes = [
         component: () => import('@/views/orders/OrderDetailView.vue'),
         meta: { title: '订单详情' },
       },
+      {
+        path: 'shop',
+        name: 'Shop',
+        component: () => import('@/views/shop/ShopSettingsView.vue'),
+        meta: { title: '门店设置' },
+      },
     ],
   },
 ]

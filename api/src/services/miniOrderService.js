@@ -86,7 +86,7 @@ async function createMiniOrder(userId, body) {
     }
     addressSnapshot = JSON.stringify(addr);
   } else if (effectiveDeliveryType === 'pickup') {
-    pickupSnapshot = buildPickupSnapshot();
+    pickupSnapshot = await buildPickupSnapshot();
   }
 
   const isSample = orderType === ORDER_TYPES.SAMPLE;

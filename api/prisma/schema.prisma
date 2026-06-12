@@ -240,3 +240,17 @@ model OrderLog {
   @@index([orderId])
   @@map("order_logs")
 }
+
+model ShopProfile {
+  id         Int      @id @default(1)
+  name       String   @db.VarChar(128)
+  coverImage String?  @map("cover_image") @db.VarChar(512)
+  address    String   @db.VarChar(255)
+  phone      String   @db.VarChar(32)
+  latitude   Decimal? @db.Decimal(10, 7)
+  longitude  Decimal? @db.Decimal(10, 7)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("shop_profiles")
+}

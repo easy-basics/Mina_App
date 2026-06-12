@@ -1,5 +1,6 @@
 <template>
   <view class="page">
+    <ShopInfoCard :shop="shopInfo" />
     <view class="search-bar">
       <input
         v-model="keyword"
@@ -36,16 +37,27 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getCategories, getProducts } from '@/api/catalog'
+import { getCategories, getProducts, getShopInfo } from '@/api/catalog'
 import ProductCard from '@/components/ProductCard.vue'
+import ShopInfoCard from '@/components/ShopInfoCard.vue'
 
 const categories = ref([])
 const products = ref([])
+const shopInfo = ref(null)
 const activeCategoryId = ref(null)
 const keyword = ref('')
 const loading = ref(false)
 const page = ref(1)
 const total = ref(0)
+
+async function loadShopInfo() {
+  try {
+    const res = await getShopInfo()
+    shopInfo.value = res.data
+  } catch {
+    shopInfo.value = null
+  }
+}
 
 async function loadCategories() {
   const res = await getCategories()
@@ -92,7 +104,10 @@ function goDetail(id) {
   uni.navigateTo({ url: `/pages/product/detail?id=${id}` })
 }
 
-onMounted(loadCategories)
+onMounted(() => {
+  loadShopInfo()
+  loadCategories()
+})
 </script>
 
 <style scoped>

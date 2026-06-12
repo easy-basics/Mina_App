@@ -2,10 +2,12 @@ const express = require('express');
 const prisma = require('../../utils/prisma');
 const { success, fail } = require('../../utils/response');
 const { toAbsoluteUrl } = require('../../utils/url');
-const { getShopInfo } = require('../../utils/shopConfig');
+const { getShopProfile, formatShopForMini } = require('../../services/shopSettingsService');
 const router = express.Router();
 
 function mapProductListItem(p) {
+  const prices = (p.skus ?? []).map((s) => Number(s.price));
+  const minPrice = prices.length ? Math.min(...prices) : null;
   return {
     id: p.id,
     code: p.code,
@@ -13,6 +15,7 @@ function mapProductListItem(p) {
     coverImage: toAbsoluteUrl(p.coverImage),
     categoryId: p.categoryId,
     category: p.category,
+    minPrice,
   };
 }
 
@@ -31,7 +34,8 @@ function mapSku(s) {
 
 router.get('/shop-info', async (req, res, next) => {
   try {
-    return success(res, getShopInfo());
+    const profile = await getShopProfile();
+    return success(res, formatShopForMini(profile));
   } catch (err) {
     return next(err);
   }
@@ -70,7 +74,13 @@ router.get('/products', async (req, res, next) => {
         orderBy: [{ sort: 'asc' }, { id: 'desc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: { category: { select: { id: true, name: true } } },
+        include: {
+          category: { select: { id: true, name: true } },
+          skus: {
+            where: { enabled: true },
+            select: { price: true },
+          },
+        },
       }),
       prisma.product.count({ where }),
     ]);
