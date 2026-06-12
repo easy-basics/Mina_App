@@ -25,8 +25,17 @@ async function ensureProductExists(productId) {
   return product;
 }
 
+async function getNextHomeSort() {
+  const result = await prisma.product.aggregate({
+    where: { showInHome: true },
+    _max: { homeSort: true },
+  });
+  return (result._max.homeSort ?? -1) + 1;
+}
+
 module.exports = {
   initDefaultParams,
   ensureProductExists,
+  getNextHomeSort,
   DEFAULT_PRODUCT_PARAMS,
 };

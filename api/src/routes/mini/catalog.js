@@ -16,6 +16,15 @@ function mapProductListItem(p) {
   };
 }
 
+function mapHomeProductItem(p) {
+  return {
+    id: p.id,
+    code: p.code,
+    name: p.name,
+    coverImage: toAbsoluteUrl(p.coverImage),
+  };
+}
+
 function mapSku(s) {
   return { ...s, price: Number(s.price) };
 }
@@ -72,6 +81,22 @@ router.get('/products', async (req, res, next) => {
       page,
       pageSize,
     });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/home-products', async (req, res, next) => {
+  try {
+    const list = await prisma.product.findMany({
+      where: {
+        enabled: true,
+        showInHome: true,
+      },
+      orderBy: [{ homeSort: 'asc' }, { id: 'asc' }],
+    });
+
+    return success(res, list.map(mapHomeProductItem));
   } catch (err) {
     return next(err);
   }

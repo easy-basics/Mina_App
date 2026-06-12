@@ -13,7 +13,7 @@ function parseSortItems(items) {
   }));
 }
 
-async function applySortUpdates(model, items, extraWhere = {}) {
+async function applySortUpdates(model, items, extraWhere = {}, sortField = 'sort') {
   const parsed = parseSortItems(items);
   for (const item of parsed) {
     if (!item.id) {
@@ -38,7 +38,7 @@ async function applySortUpdates(model, items, extraWhere = {}) {
     parsed.map((item) =>
       prisma[model].update({
         where: { id: item.id },
-        data: { sort: item.sort },
+        data: { [sortField]: item.sort },
       })
     )
   );

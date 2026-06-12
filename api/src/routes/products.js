@@ -4,6 +4,7 @@ const { success, fail } = require('../utils/response');
 const {
   initDefaultParams,
   ensureProductExists,
+  getNextHomeSort,
   DEFAULT_PRODUCT_PARAMS,
 } = require('../services/productExtrasService');
 const { applySortUpdates } = require('../utils/sortBatch');
@@ -86,6 +87,22 @@ router.get('/sort-list', async (req, res, next) => {
   }
 });
 
+router.get('/home-sort-list', async (req, res, next) => {
+  try {
+    const list = await prisma.product.findMany({
+      where: { showInHome: true },
+      orderBy: [{ homeSort: 'asc' }, { id: 'asc' }],
+      include: {
+        category: { select: { id: true, name: true } },
+        _count: { select: { skus: true } },
+      },
+    });
+    return success(res, list.map(serializeProduct));
+  } catch (err) {
+    return next(err);
+  }
+});
+
 router.put('/sort', async (req, res, next) => {
   try {
     const { items = [], categoryId } = req.body;
@@ -95,6 +112,17 @@ router.put('/sort', async (req, res, next) => {
     }
     await applySortUpdates('product', items, { categoryId: catId });
     return success(res, null, '排序已更新');
+  } catch (err) {
+    if (err.status) return fail(res, err.message, err.status, err.status);
+    return next(err);
+  }
+});
+
+router.put('/home-sort', async (req, res, next) => {
+  try {
+    const { items = [] } = req.body;
+    const parsed = await applySortUpdates('product', items, { showInHome: true }, 'homeSort');
+    return success(res, parsed, '首页展示排序已更新');
   } catch (err) {
     if (err.status) return fail(res, err.message, err.status, err.status);
     return next(err);
@@ -154,16 +182,32 @@ router.get('/:id/qrcode', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { categoryId, code, name, coverImage, enabled = true, sort = 0 } = req.body;
+    const {
+      categoryId,
+      code,
+      name,
+      coverImage,
+      enabled = true,
+      sort = 0,
+      showInHome = false,
+      homeSort,
+    } = req.body;
     if (!categoryId || !code?.trim() || !name?.trim()) {
       return fail(res, '系列、货号、名称不能为空');
     }
+    const nextHomeSort = Boolean(showInHome) && homeSort === undefined
+      ? await getNextHomeSort()
+      : undefined;
     const product = await prisma.product.create({
       data: {
         categoryId: Number(categoryId),
         code: code.trim(),
         name: name.trim(),
         coverImage: coverImage || null,
+        showInHome: Boolean(showInHome),
+        homeSort: homeSort !== undefined
+          ? Number(homeSort) || 0
+          : nextHomeSort ?? 0,
         enabled: Boolean(enabled),
         sort: Number(sort) || 0,
       },
@@ -178,10 +222,15 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const { categoryId, code, name, coverImage, enabled, sort } = req.body;
+    const { categoryId, code, name, coverImage, enabled, sort, showInHome, homeSort } = req.body;
     if (!code?.trim() || !name?.trim()) {
       return fail(res, '货号、名称不能为空');
     }
+    const existing = await ensureProductExists(id);
+    const shouldShowInHome = showInHome !== undefined ? Boolean(showInHome) : existing.showInHome;
+    const nextHomeSort = shouldShowInHome && !existing.showInHome && homeSort === undefined
+      ? await getNextHomeSort()
+      : undefined;
     const product = await prisma.product.update({
       where: { id },
       data: {
@@ -189,6 +238,10 @@ router.put('/:id', async (req, res, next) => {
         code: code.trim(),
         name: name.trim(),
         coverImage: coverImage !== undefined ? coverImage : undefined,
+        showInHome: showInHome !== undefined ? Boolean(showInHome) : undefined,
+        homeSort: homeSort !== undefined
+          ? Number(homeSort) || 0
+          : nextHomeSort,
         enabled: enabled !== undefined ? Boolean(enabled) : undefined,
         sort: sort !== undefined ? Number(sort) : undefined,
       },

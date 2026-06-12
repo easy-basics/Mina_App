@@ -8,6 +8,10 @@ export function getProducts(params) {
   return request({ url: '/mini/catalog/products', data: params, auth: false })
 }
 
+export function getHomeProducts() {
+  return request({ url: '/mini/catalog/home-products', auth: false })
+}
+
 export function getProduct(id) {
   return request({ url: `/mini/catalog/products/${id}`, auth: false })
 }

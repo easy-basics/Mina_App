@@ -24,13 +24,13 @@ const emit = defineEmits(['select'])
 <style scoped>
 .product-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  padding: 16rpx 24rpx;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 18rpx 24rpx 28rpx;
 }
 
 .grid-item {
-  width: calc(50% - 8rpx);
+  width: 100%;
 }
 
 .state {

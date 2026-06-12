@@ -55,11 +55,11 @@
       </view>
     </view>
 
-    <view class="showcase-card">
+    <view v-if="showcaseProducts.length" class="showcase-card">
       <text class="section-title">商品展示</text>
       <view class="showcase-grid">
-        <view v-for="item in showcaseProducts" :key="item.code" class="showcase-item">
-          <image class="swatch-img" :src="item.image" mode="aspectFill" />
+        <view v-for="item in showcaseProducts" :key="item.id" class="showcase-item" @click="goProduct(item.id)">
+          <image class="swatch-img" :src="item.coverImage" mode="aspectFill" />
           <text class="swatch-code">{{ item.code }}</text>
         </view>
       </view>
@@ -71,23 +71,16 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import HomeNavBar from '@/components/HomeNavBar.vue'
+import { getHomeProducts } from '@/api/catalog'
 
 const scrollTop = ref(0)
+const showcaseProducts = ref([])
 const banners = [
   '/static/banner/ban1.jpg',
   '/static/banner/ban2.jpg',
   '/static/banner/ban3.jpg',
-]
-
-const showcaseProducts = [
-  { code: 'SCH-001', image: '/static/showcase/sch-001.jpg' },
-  { code: 'SCH-002', image: '/static/showcase/sch-002.jpg' },
-  { code: 'SCH-003', image: '/static/showcase/sch-003.jpg' },
-  { code: 'SCH-004', image: '/static/showcase/sch-004.jpg' },
-  { code: 'SCH-005', image: '/static/showcase/sch-005.jpg' },
-  { code: 'SCH-006', image: '/static/showcase/sch-006.jpg' },
 ]
 
 function goCatalog() {
@@ -106,12 +99,23 @@ function goSearch() {
   uni.navigateTo({ url: '/pages/search/index' })
 }
 
+function goProduct(id) {
+  uni.navigateTo({ url: `/pages/product/detail?id=${id}` })
+}
+
 function onNavHome() {
   scrollTop.value = 1
   nextTick(() => {
     scrollTop.value = 0
   })
 }
+
+async function loadHomeProducts() {
+  const res = await getHomeProducts()
+  showcaseProducts.value = res.data
+}
+
+onMounted(loadHomeProducts)
 </script>
 
 <style scoped>
@@ -370,6 +374,7 @@ function onNavHome() {
   display: flex;
   flex-direction: column;
   align-items: center;
+  cursor: pointer;
 }
 
 .swatch-img {
