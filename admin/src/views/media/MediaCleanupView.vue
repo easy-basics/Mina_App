@@ -30,9 +30,9 @@
         <template #default="{ row }">
           <el-image
             :src="resolveMediaUrl(row.path)"
-            :preview-src-list="[resolveMediaUrl(row.path)]"
             fit="cover"
             class="thumb"
+            @click="openPreview(row.path)"
           />
         </template>
       </el-table-column>
@@ -47,6 +47,14 @@
 
     <el-empty v-if="!scanned" description="点击「开始扫描」查找无引用的图片文件" />
     <el-empty v-else-if="!scanning && list.length === 0" description="未发现无引用图片" />
+
+    <el-image-viewer
+      v-if="previewVisible"
+      :url-list="previewUrls"
+      :z-index="3100"
+      teleported
+      @close="previewVisible = false"
+    />
   </div>
 </template>
 
@@ -63,6 +71,8 @@ const list = ref([])
 const summary = ref({ count: 0, totalSize: 0 })
 const selectedPaths = ref([])
 const tableRef = ref()
+const previewVisible = ref(false)
+const previewUrls = ref([])
 
 const allSelected = computed(
   () => list.value.length > 0 && selectedPaths.value.length === list.value.length
@@ -82,6 +92,11 @@ function formatTime(iso) {
 
 function handleSelectionChange(rows) {
   selectedPaths.value = rows.map((row) => row.path)
+}
+
+function openPreview(path) {
+  previewUrls.value = [resolveMediaUrl(path)]
+  previewVisible.value = true
 }
 
 function toggleSelectAll() {
@@ -162,5 +177,14 @@ async function handleDelete() {
   width: 64px;
   height: 64px;
   border-radius: 6px;
+  cursor: zoom-in;
+}
+
+:deep(.thumb .el-image__inner) {
+  cursor: zoom-in;
+}
+
+:deep(.el-table .el-table__cell) {
+  position: static;
 }
 </style>
