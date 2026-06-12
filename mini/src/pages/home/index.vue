@@ -59,7 +59,7 @@
       <text class="section-title">商品展示</text>
       <view class="showcase-grid">
         <view v-for="item in showcaseProducts" :key="item.id" class="showcase-item" @click="goProduct(item.id)">
-          <image class="swatch-img" :src="item.coverImage" mode="aspectFill" />
+          <image class="swatch-img" :src="resolveImageUrl(item.coverImage, '/static/logo.svg')" mode="aspectFill" />
           <text class="swatch-code">{{ item.code }}</text>
         </view>
       </view>
@@ -74,6 +74,7 @@
 import { ref, nextTick, onMounted } from 'vue'
 import HomeNavBar from '@/components/HomeNavBar.vue'
 import { getHomeProducts } from '@/api/catalog'
+import { resolveImageUrl } from '@/utils/media'
 
 const scrollTop = ref(0)
 const showcaseProducts = ref([])

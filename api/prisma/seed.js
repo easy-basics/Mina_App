@@ -21,6 +21,17 @@ async function main() {
 
   console.log(`Admin ready: ${admin.username}`);
 
+  await prisma.shopProfile.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      name: process.env.SHOP_NAME || '门店',
+      address: process.env.SHOP_ADDRESS || '',
+      phone: process.env.SHOP_PHONE || '',
+    },
+  });
+
   const category = await prisma.category.upsert({
     where: { id: 1 },
     update: {},
@@ -101,7 +112,7 @@ async function main() {
         payStatus: 'paid',
         totalAmount: 50,
         deliveryType: 'pickup',
-        pickupSnapshot: buildPickupSnapshot(),
+        pickupSnapshot: await buildPickupSnapshot(),
         customerName: '李先生',
         customerPhone: '13900001111',
         remark: '布版订单示例',

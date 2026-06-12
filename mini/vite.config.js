@@ -9,6 +9,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  server: {
+    host: true,
+  },
   plugins: [
     // https://uni-helper.js.org/plugin-uni
     Uni(),

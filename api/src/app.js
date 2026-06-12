@@ -12,6 +12,7 @@ const productRoutes = require('./routes/products');
 const uploadRoutes = require('./routes/upload');
 const orderRoutes = require('./routes/orders');
 const userRoutes = require('./routes/users');
+const shopRoutes = require('./routes/shop');
 const miniRoutes = require('./routes/mini');
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/products', authMiddleware, productRoutes);
 app.use('/api/upload', authMiddleware, uploadRoutes);
 app.use('/api/orders', authMiddleware, orderRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
+app.use('/api/shop', authMiddleware, shopRoutes);
 
 app.get('/api/health', (req, res) => {
   const {
