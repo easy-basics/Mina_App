@@ -3,6 +3,7 @@ const prisma = require('../../utils/prisma');
 const { success, fail } = require('../../utils/response');
 const { toAbsoluteUrl } = require('../../utils/url');
 const { getShopProfile, formatShopForMini } = require('../../services/shopSettingsService');
+const { getHomeContentForMini } = require('../../services/homeContentService');
 const router = express.Router();
 
 function mapProductListItem(p) {
@@ -107,6 +108,15 @@ router.get('/home-products', async (req, res, next) => {
     });
 
     return success(res, list.map(mapHomeProductItem));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/home-content', async (req, res, next) => {
+  try {
+    const data = await getHomeContentForMini();
+    return success(res, data);
   } catch (err) {
     return next(err);
   }

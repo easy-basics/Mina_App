@@ -12,6 +12,10 @@ export function getHomeProducts() {
   return request({ url: '/mini/catalog/home-products', auth: false })
 }
 
+export function getHomeContent() {
+  return request({ url: '/mini/catalog/home-content', auth: false })
+}
+
 export function getProduct(id) {
   return request({ url: `/mini/catalog/products/${id}`, auth: false })
 }

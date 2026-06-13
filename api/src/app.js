@@ -14,6 +14,7 @@ const uploadOrphansRoutes = require('./routes/uploadOrphans');
 const orderRoutes = require('./routes/orders');
 const userRoutes = require('./routes/users');
 const shopRoutes = require('./routes/shop');
+const homeRoutes = require('./routes/home');
 const miniRoutes = require('./routes/mini');
 
 const app = express();
@@ -38,6 +39,7 @@ app.use('/api/uploads', authMiddleware, uploadOrphansRoutes);
 app.use('/api/orders', authMiddleware, orderRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/shop', authMiddleware, shopRoutes);
+app.use('/api/home', authMiddleware, homeRoutes);
 
 app.get('/api/health', (req, res) => {
   const {

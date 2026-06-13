@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const { initDefaultParams } = require('../src/services/productExtrasService');
 const { buildPickupSnapshot } = require('../src/utils/shopConfig');
 const { seedCatalog } = require('./lib/seedCatalog');
+const { seedHomeContent } = require('./lib/seedHomeContent');
 
 const prisma = new PrismaClient();
 const BCRYPT_ROUNDS = 12;
@@ -172,6 +173,8 @@ async function main() {
   }
 
   await seedCatalog(prisma);
+
+  await seedHomeContent(prisma);
 
   console.log('Seed completed.');
 }

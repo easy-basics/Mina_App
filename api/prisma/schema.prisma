@@ -254,3 +254,42 @@ model ShopProfile {
 
   @@map("shop_profiles")
 }
+
+model HomeBanner {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String   @map("image_url") @db.VarChar(512)
+  linkUrl   String?  @map("link_url") @db.VarChar(512)
+  sort      Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("home_banners")
+}
+
+model BrandIntro {
+  id              Int      @id @default(1)
+  homeCoverImage  String?  @map("home_cover_image") @db.VarChar(512)
+  homeSummary     String   @map("home_summary") @db.Text
+  introHeroImage  String?  @map("intro_hero_image") @db.VarChar(512)
+  brandName       String   @map("brand_name") @db.VarChar(128)
+  brandSubtitle   String?  @map("brand_subtitle") @db.VarChar(255)
+  showIntroButton Boolean  @default(true) @map("show_intro_button")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("brand_intro")
+}
+
+model BrandIntroSection {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(64)
+  body      String   @db.Text
+  tags      String?  @db.VarChar(255)
+  sort      Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("brand_intro_sections")
+}

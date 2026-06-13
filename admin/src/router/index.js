@@ -63,6 +63,12 @@ const routes = [
         meta: { title: '门店设置' },
       },
       {
+        path: 'home',
+        name: 'HomeManage',
+        component: () => import('@/views/home/HomeManageView.vue'),
+        meta: { title: '首页管理' },
+      },
+      {
         path: 'media-cleanup',
         name: 'MediaCleanup',
         component: () => import('@/views/media/MediaCleanupView.vue'),

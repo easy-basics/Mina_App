@@ -1,41 +1,16 @@
 <template>
   <scroll-view scroll-y class="page">
-    <image class="hero" src="/static/brand/a1.jpg" mode="aspectFill" />
+    <image class="hero" :src="heroSrc" mode="aspectFill" />
     <view class="content">
-      <text class="brand-name">才汇纺织</text>
-      <text class="brand-sub">广州才汇纺织科技有限公司</text>
+      <text class="brand-name">{{ brandName }}</text>
+      <text class="brand-sub">{{ brandSubtitle }}</text>
 
-      <view class="section">
-        <text class="section-title">企业简介</text>
-        <text class="section-body">
-          广州才汇纺织科技有限公司隶属于广州秀丽服装培训学院旗下一子公司。公司立足粤港澳大湾区，专注纺织面料的研发、生产与销售，为服装企业与设计师提供稳定、优质的面料供应服务。
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">核心业务</text>
-        <view class="tags">
-          <text class="tag">面料研发</text>
-          <text class="tag">规模化生产</text>
-          <text class="tag">全国销售</text>
+      <view v-for="(section, index) in sections" :key="index" class="section">
+        <text class="section-title">{{ section.title }}</text>
+        <view v-if="section.tags?.length" class="tags">
+          <text v-for="tag in section.tags" :key="tag" class="tag">{{ tag }}</text>
         </view>
-        <text class="section-body">
-          才汇纺织以面料研发、生产、销售为一体，建立从打样、小批量到大批量供货的完整服务体系，支持布版与大货两种采购模式。
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">产品方向</text>
-        <text class="section-body">
-          旗下纺织产品涵盖时装面料、工装面料等多个品类，持续拓展功能性、环保型面料产品线，满足不同场景下的穿着与工艺需求。
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">联系我们</text>
-        <text class="section-body">
-          欢迎通过小程序浏览选购，或联系客服咨询大货订单与定制需求。
-        </text>
+        <text class="section-body">{{ section.body }}</text>
       </view>
 
       <button class="back-btn" @click="goHome">返回首页</button>
@@ -45,9 +20,69 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { getHomeContent } from '@/api/catalog'
+import { resolveImageUrl } from '@/utils/media'
+
+const FALLBACK = {
+  hero: '/static/brand/a1.jpg',
+  brandName: '才汇纺织',
+  brandSubtitle: '广州才汇纺织科技有限公司',
+  sections: [
+    {
+      title: '企业简介',
+      body: '广州才汇纺织科技有限公司隶属于广州秀丽服装培训学院旗下一子公司。公司立足粤港澳大湾区，专注纺织面料的研发、生产与销售，为服装企业与设计师提供稳定、优质的面料供应服务。',
+      tags: [],
+    },
+    {
+      title: '核心业务',
+      tags: ['面料研发', '规模化生产', '全国销售'],
+      body: '才汇纺织以面料研发、生产、销售为一体，建立从打样、小批量到大批量供货的完整服务体系，支持布版与大货两种采购模式。',
+    },
+    {
+      title: '产品方向',
+      body: '旗下纺织产品涵盖时装面料、工装面料等多个品类，持续拓展功能性、环保型面料产品线，满足不同场景下的穿着与工艺需求。',
+      tags: [],
+    },
+    {
+      title: '联系我们',
+      body: '欢迎通过小程序浏览选购，或联系客服咨询大货订单与定制需求。',
+      tags: [],
+    },
+  ],
+}
+
+const brandData = ref(null)
+
+const heroSrc = computed(() => {
+  const url = brandData.value?.introHeroImage
+  return url ? resolveImageUrl(url) : FALLBACK.hero
+})
+
+const brandName = computed(() => brandData.value?.brandName || FALLBACK.brandName)
+
+const brandSubtitle = computed(() => brandData.value?.brandSubtitle || FALLBACK.brandSubtitle)
+
+const sections = computed(() => {
+  const list = brandData.value?.sections
+  if (list?.length) return list
+  return FALLBACK.sections
+})
+
 function goHome() {
   uni.reLaunch({ url: '/pages/home/index' })
 }
+
+async function loadBrand() {
+  try {
+    const res = await getHomeContent()
+    brandData.value = res.data?.brand || null
+  } catch {
+    brandData.value = null
+  }
+}
+
+onMounted(loadBrand)
 </script>
 
 <style scoped>

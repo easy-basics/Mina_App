@@ -12,8 +12,13 @@
         indicator-color="rgba(255,255,255,0.4)"
         indicator-active-color="#ff6633"
       >
-        <swiper-item v-for="(img, i) in banners" :key="i">
-          <image class="banner-img" :src="img" mode="aspectFill" />
+        <swiper-item v-for="(banner, i) in displayBanners" :key="banner.id || i">
+          <image
+            class="banner-img"
+            :src="banner.imageSrc"
+            mode="aspectFill"
+            @click="onBannerTap(banner)"
+          />
         </swiper-item>
       </swiper>
     </view>
@@ -43,11 +48,14 @@
 
     <view class="brand-card">
       <text class="section-title">品牌介绍</text>
-      <image class="brand-img" src="/static/brand/a1.jpg" mode="widthFix" />
-      <text class="brand-desc">
-        广州才汇纺织科技有限公司隶属于广州秀丽服装培训学院旗下一子公司。才汇纺织以面料研发、生产、销售为一体，旗下纺织产品有时装面料、工装面料等。
-      </text>
-      <view class="brand-btn" @click="goIntro">
+      <image
+        v-if="brandCoverSrc"
+        class="brand-img"
+        :src="brandCoverSrc"
+        mode="widthFix"
+      />
+      <text class="brand-desc">{{ brandSummary }}</text>
+      <view v-if="showIntroButton" class="brand-btn" @click="goIntro">
         <view class="brand-btn-icon">
           <view class="icon-chevron" />
         </view>
@@ -60,7 +68,7 @@
       <view class="showcase-grid">
         <view v-for="item in showcaseProducts" :key="item.id" class="showcase-item" @click="goProduct(item.id)">
           <image class="swatch-img" :src="resolveImageUrl(item.coverImage, '/static/logo.svg')" mode="aspectFill" />
-          <text class="swatch-code">{{ item.code }}</text>
+          <text class="swatch-name">{{ item.name }}</text>
         </view>
       </view>
     </view>
@@ -71,18 +79,55 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, computed } from 'vue'
 import HomeNavBar from '@/components/HomeNavBar.vue'
-import { getHomeProducts } from '@/api/catalog'
+import { getHomeProducts, getHomeContent } from '@/api/catalog'
 import { resolveImageUrl } from '@/utils/media'
 
-const scrollTop = ref(0)
-const showcaseProducts = ref([])
-const banners = [
+const DEFAULT_BANNERS = [
   '/static/banner/ban1.jpg',
   '/static/banner/ban2.jpg',
   '/static/banner/ban3.jpg',
 ]
+
+const DEFAULT_BRAND_SUMMARY =
+  '广州才汇纺织科技有限公司隶属于广州秀丽服装培训学院旗下一子公司。才汇纺织以面料研发、生产、销售为一体，旗下纺织产品有时装面料、工装面料等。'
+
+const scrollTop = ref(0)
+const showcaseProducts = ref([])
+const apiBanners = ref([])
+const brandContent = ref(null)
+
+const displayBanners = computed(() => {
+  if (apiBanners.value.length) {
+    return apiBanners.value.map((item) => ({
+      id: item.id,
+      imageSrc: resolveImageUrl(item.imageUrl),
+      linkUrl: item.linkUrl,
+    }))
+  }
+  return DEFAULT_BANNERS.map((src, index) => ({
+    id: `static-${index}`,
+    imageSrc: src,
+    linkUrl: '',
+  }))
+})
+
+const brandCoverSrc = computed(() => {
+  const url = brandContent.value?.homeCoverImage
+  return url ? resolveImageUrl(url) : '/static/brand/a1.jpg'
+})
+
+const brandSummary = computed(() => brandContent.value?.homeSummary || DEFAULT_BRAND_SUMMARY)
+
+const showIntroButton = computed(() => brandContent.value?.showIntroButton !== false)
+
+function onBannerTap(banner) {
+  const link = banner.linkUrl?.trim()
+  if (!link) return
+  if (!link.startsWith('/pages/')) return
+  uni.navigateTo({ url: link })
+}
 
 function goCatalog() {
   uni.navigateTo({ url: '/pages/index' })
@@ -111,12 +156,26 @@ function onNavHome() {
   })
 }
 
+async function loadHomeContent() {
+  try {
+    const res = await getHomeContent()
+    apiBanners.value = res.data?.banners || []
+    brandContent.value = res.data?.brand || null
+  } catch {
+    apiBanners.value = []
+    brandContent.value = null
+  }
+}
+
 async function loadHomeProducts() {
   const res = await getHomeProducts()
   showcaseProducts.value = res.data
 }
 
-onMounted(loadHomeProducts)
+onMounted(() => {
+  loadHomeContent()
+  loadHomeProducts()
+})
 </script>
 
 <style scoped>
@@ -385,10 +444,13 @@ onMounted(loadHomeProducts)
   background: #eee;
 }
 
-.swatch-code {
+.swatch-name {
   margin-top: 12rpx;
   font-size: 24rpx;
-  color: #888;
+  color: #333;
+  text-align: center;
+  line-height: 1.4;
+  word-break: break-all;
 }
 
 .page-bottom {
