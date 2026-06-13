@@ -48,3 +48,14 @@ export function resolveImageUrl(url, fallback = '') {
 
   return `${base}/${trimmed}`
 }
+
+/** 预览图片，支持缩放滑动查看 */
+export function previewImages(urls, current = 0) {
+  const list = (Array.isArray(urls) ? urls : [urls]).filter(Boolean)
+  if (!list.length) return
+  const currentUrl = typeof current === 'number' ? list[current] : current
+  uni.previewImage({
+    urls: list,
+    current: currentUrl || list[0],
+  })
+}

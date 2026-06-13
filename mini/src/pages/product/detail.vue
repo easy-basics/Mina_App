@@ -2,10 +2,10 @@
   <view v-if="product" class="page">
     <swiper v-if="images.length" class="banner" indicator-dots circular>
       <swiper-item v-for="(img, i) in images" :key="i">
-        <image :src="img" class="banner-img" mode="aspectFill" />
+        <image :src="img" class="banner-img" mode="aspectFill" @click="previewImageAt(i)" />
       </swiper-item>
     </swiper>
-    <image v-else class="banner banner-img" :src="coverSrc" mode="aspectFill" />
+    <image v-else class="banner banner-img" :src="coverSrc" mode="aspectFill" @click="previewImageAt(0)" />
 
     <view class="info">
       <text class="title">{{ product.name }}</text>
@@ -27,6 +27,7 @@
         :src="img"
         class="detail-img"
         mode="widthFix"
+        @click="previewImageAt(i)"
       />
       <view v-if="!images.length" class="empty">暂无详情图</view>
     </view>
@@ -74,7 +75,7 @@ import { getProduct } from '@/api/catalog'
 import { addFavorite, removeFavorite } from '@/api/favorite'
 import { ORDER_TYPES } from '@/constants/orders'
 import { ensureLogin } from '@/utils/request'
-import { resolveImageUrl } from '@/utils/media'
+import { resolveImageUrl, previewImages } from '@/utils/media'
 import { useCartStore } from '@/stores/cart'
 import OrderSheet from '@/components/OrderSheet.vue'
 import OrderTypePicker from '@/components/OrderTypePicker.vue'
@@ -151,6 +152,15 @@ function goCart() {
 
 function onOrderSuccess() {
   cartStore.refresh()
+}
+
+function previewImageAt(index) {
+  const list = images.value.length
+    ? images.value
+    : coverSrc.value
+      ? [coverSrc.value]
+      : []
+  previewImages(list, index)
 }
 
 onMounted(() => {

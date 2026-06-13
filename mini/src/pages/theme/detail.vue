@@ -4,13 +4,19 @@
     <template v-else-if="theme">
       <scroll-view scroll-y class="scroll">
         <view class="header">
-          <text class="title">{{ theme.name }}</text>
-          <text v-if="theme.subtitle" class="subtitle">{{ theme.subtitle }}</text>
+          <view class="header-main">
+            <text class="title">{{ theme.name }}</text>
+            <text v-if="theme.subtitle" class="subtitle">{{ theme.subtitle }}</text>
+          </view>
+          <view class="share-btn" @click="shareSheetVisible = true">
+            <image class="share-icon" :src="shareIcon" mode="aspectFit" />
+          </view>
         </view>
         <image
           class="cover"
-          :src="resolveImageUrl(theme.coverImage, '/static/logo.svg')"
+          :src="coverSrc"
           mode="widthFix"
+          @click="previewCover"
         />
         <view class="product-list">
           <view v-for="p in theme.products" :key="p.id" class="product-row">
@@ -25,25 +31,59 @@
           <view v-if="!theme.products?.length" class="empty">该系列暂无商品</view>
         </view>
       </scroll-view>
+
+      <ThemeShareSheet
+        v-model:visible="shareSheetVisible"
+        @poster="openPoster"
+      />
+      <ThemePosterModal v-model:visible="posterVisible" :theme="theme" />
     </template>
     <view v-else class="state">系列不存在或已停用</view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { ref, computed } from 'vue'
+import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { getCategoryDetail } from '@/api/catalog'
-import { resolveImageUrl } from '@/utils/media'
+import { resolveImageUrl, previewImages } from '@/utils/media'
+import ThemeShareSheet from '@/components/ThemeShareSheet.vue'
+import ThemePosterModal from '@/components/ThemePosterModal.vue'
+import shareIcon from '../../../assets/svg/share-black.svg'
 
 const theme = ref(null)
 const loading = ref(false)
 const themeId = ref(0)
+const shareSheetVisible = ref(false)
+const posterVisible = ref(false)
 
-onLoad((q) => {
-  themeId.value = Number(q.id)
+const shareTitle = computed(() => {
+  if (!theme.value) return '才汇纺织'
+  const { name, subtitle } = theme.value
+  if (name && subtitle) return `${name}-${subtitle}`
+  return name || '才汇纺织'
+})
+
+const coverSrc = computed(() =>
+  resolveImageUrl(theme.value?.coverImage, '/static/logo.svg')
+)
+
+onLoad((query) => {
+  if (query.scene) {
+    const scene = decodeURIComponent(query.scene)
+    const match = scene.match(/cid=(\d+)/)
+    themeId.value = match ? Number(match[1]) : Number(query.id)
+  } else {
+    themeId.value = Number(query.id)
+  }
   loadData()
 })
+
+onShareAppMessage(() => ({
+  title: shareTitle.value,
+  path: `/pages/theme/detail?id=${themeId.value}`,
+  imageUrl: resolveImageUrl(theme.value?.coverImage) || undefined,
+}))
 
 async function loadData() {
   if (!themeId.value) return
@@ -61,6 +101,15 @@ async function loadData() {
 function goProduct(id) {
   uni.navigateTo({ url: `/pages/product/detail?id=${id}` })
 }
+
+function openPoster() {
+  shareSheetVisible.value = false
+  posterVisible.value = true
+}
+
+function previewCover() {
+  if (coverSrc.value) previewImages([coverSrc.value], 0)
+}
 </script>
 
 <style scoped>
@@ -74,8 +123,17 @@ function goProduct(id) {
 }
 
 .header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
   padding: 32rpx 28rpx 16rpx;
   background: #fff;
+}
+
+.header-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .title {
@@ -90,6 +148,20 @@ function goProduct(id) {
   margin-top: 8rpx;
   font-size: 28rpx;
   color: #999;
+}
+
+.share-btn {
+  flex-shrink: 0;
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-icon {
+  width: 44rpx;
+  height: 44rpx;
 }
 
 .cover {

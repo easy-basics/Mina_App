@@ -59,6 +59,11 @@
     "requiredPrivateInfos": [
       "chooseAddress"
     ],
+    "permission": {
+      "scope.writePhotosAlbum": {
+        "desc": "用于保存主题海报到相册"
+      }
+    },
     "__usePrivacyCheck__": true
   },
   "mp-alipay": {

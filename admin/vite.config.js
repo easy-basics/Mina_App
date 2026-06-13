@@ -15,18 +15,6 @@ export default defineConfig(({ mode }) => {
       target: apiTarget,
       changeOrigin: true,
       secure: false,
-      configure: (proxyInstance) => {
-        proxyInstance.on('proxyReq', (proxyReq, req) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7330/ingest/418692a6-e25a-4dfd-af5a-2582b4c9bc43',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ef1db7'},body:JSON.stringify({sessionId:'ef1db7',location:'vite.config.js:proxyReq',message:'proxy forwarding request',data:{incomingUrl:req.url,proxyTarget:apiTarget,proxyHost:proxyReq.getHeader('host')},timestamp:Date.now(),hypothesisId:'H2-H4'})}).catch(()=>{});
-          // #endregion
-        })
-        proxyInstance.on('error', (err, req) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7330/ingest/418692a6-e25a-4dfd-af5a-2582b4c9bc43',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ef1db7'},body:JSON.stringify({sessionId:'ef1db7',location:'vite.config.js:proxyError',message:'proxy error',data:{incomingUrl:req?.url,proxyTarget:apiTarget,errorCode:err?.code,errorMessage:err?.message},timestamp:Date.now(),hypothesisId:'H2-H4'})}).catch(()=>{});
-          // #endregion
-        })
-      },
     },
     '/uploads': {
       target: apiTarget,
@@ -34,10 +22,6 @@ export default defineConfig(({ mode }) => {
       secure: false,
     },
   }
-
-  // #region agent log
-  fetch('http://127.0.0.1:7330/ingest/418692a6-e25a-4dfd-af5a-2582b4c9bc43',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ef1db7'},body:JSON.stringify({sessionId:'ef1db7',location:'vite.config.js:init',message:'vite config loaded',data:{mode,apiTarget,viteApiBaseUrl:env.VITE_API_BASE_URL||null},timestamp:Date.now(),hypothesisId:'H3-H4'})}).catch(()=>{});
-  // #endregion
 
   return {
     plugins: [vue()],

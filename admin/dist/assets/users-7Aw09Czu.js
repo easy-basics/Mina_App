@@ -1,1 +1,0 @@
-import{n as e}from"./index-CFV5Phh4.js";function t(t){return e.get(`/users`,{params:t})}function n(t){return e.get(`/users/${t}`)}function r(t){return e.delete(`/users/${t}`)}export{n,t as r,r as t};

@@ -226,6 +226,62 @@ async function getProductWxacode(productId) {
   return { buffer, mock: false };
 }
 
+/**
+ * 生成系列主题小程序码（扫码直达主题详情）
+ * scene 格式 cid=系列ID
+ */
+async function getCategoryWxacode(categoryId) {
+  const scene = `cid=${categoryId}`;
+  if (scene.length > 32) {
+    const err = new Error('系列 ID 超出小程序码 scene 长度限制');
+    err.status = 400;
+    throw err;
+  }
+
+  const appid = process.env.WECHAT_APPID;
+  const secret = process.env.WECHAT_SECRET;
+
+  if (!appid || !secret) {
+    if (process.env.NODE_ENV === 'development') {
+      const QRCode = require('qrcode');
+      const buffer = await QRCode.toBuffer(`mina-theme:${categoryId}`, {
+        width: 430,
+        margin: 2,
+        errorCorrectionLevel: 'M',
+      });
+      return { buffer, mock: true };
+    }
+    const err = new Error('微信小程序未配置，无法生成二维码');
+    err.status = 503;
+    throw err;
+  }
+
+  const accessToken = await getAccessToken();
+  const url = `https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=${accessToken}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      scene,
+      page: 'pages/theme/detail',
+      check_path: false,
+      width: 430,
+      env_version: process.env.WECHAT_ENV_VERSION || 'release',
+    }),
+  });
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const data = await res.json();
+    const err = new Error(data.errmsg || '生成小程序码失败');
+    err.status = 400;
+    throw err;
+  }
+
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return { buffer, mock: false };
+}
+
 module.exports = {
   code2Session,
   getAccessToken,
@@ -233,4 +289,5 @@ module.exports = {
   createJsapiPayParams,
   isPayConfigured,
   getProductWxacode,
+  getCategoryWxacode,
 };

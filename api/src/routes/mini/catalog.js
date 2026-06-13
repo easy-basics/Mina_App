@@ -4,6 +4,7 @@ const { success, fail } = require('../../utils/response');
 const { toAbsoluteUrl } = require('../../utils/url');
 const { getShopProfile, formatShopForMini } = require('../../services/shopSettingsService');
 const { getHomeContentForMini } = require('../../services/homeContentService');
+const { getCategoryWxacode } = require('../../services/wechatService');
 const router = express.Router();
 
 function mapProductListItem(p) {
@@ -60,6 +61,28 @@ router.get('/categories', async (req, res, next) => {
       orderBy: [{ sort: 'asc' }, { id: 'asc' }],
     });
     return success(res, list.map(mapCategoryItem));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/categories/:id/wxacode', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const category = await prisma.category.findFirst({
+      where: { id, parentId: null, enabled: true },
+      select: { id: true, name: true },
+    });
+    if (!category) {
+      return fail(res, '系列不存在或已停用', 404, 404);
+    }
+
+    const { buffer, mock } = await getCategoryWxacode(id);
+    return success(res, {
+      qrcode: `data:image/png;base64,${buffer.toString('base64')}`,
+      mock,
+      category: { id: category.id, name: category.name },
+    });
   } catch (err) {
     return next(err);
   }
