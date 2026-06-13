@@ -33,13 +33,23 @@
       <view v-else class="login-wrap">
         <!-- #ifdef MP-WEIXIN -->
         <button
+          v-if="needPrivacyTip"
+          id="privacy-agree-btn-mine"
+          class="login-btn-bar"
+          open-type="agreePrivacyAuthorization"
+          hover-class="login-btn-bar--hover"
+          @agreeprivacyauthorization="onAgreePrivacy"
+        >
+          登录
+        </button>
+        <button
+          v-else
           id="privacy-avatar-btn-mine"
           class="login-btn-bar"
-          open-type="chooseAvatar|agreePrivacyAuthorization"
+          open-type="chooseAvatar"
           hover-class="login-btn-bar--hover"
           :disabled="avatarSaving"
           @chooseavatar="onChooseAvatar"
-          @agreeprivacyauthorization="onAgreePrivacy"
         >
           {{ loginBtnText }}
         </button>
@@ -109,6 +119,7 @@ const userStore = useUserStore()
 
 const {
   avatarSaving,
+  needPrivacyTip,
   avatarSrc,
   onChooseAvatar,
   onAgreePrivacy,
@@ -119,7 +130,7 @@ const {
 })
 
 const loginBtnText = computed(() =>
-  avatarSaving.value ? '保存中…' : '登录'
+  avatarSaving.value ? '上传中…' : '登录'
 )
 
 function onAvatarUnsupported() {

@@ -10,7 +10,7 @@ import {
 } from '@/utils/wechatPrivacy'
 
 /**
- * 微信 chooseAvatar 选择与保存的共享逻辑（直接存微信 CDN 地址，不上传文件）。
+ * 微信 chooseAvatar 选择与上传的共享逻辑。
  * @param {object} [options]
  * @param {string|null} [options.successToast='头像已保存'] 保存成功提示；传 null 则不提示
  * @param {(hadAvatar: boolean) => string|null|undefined} [options.resolveSuccessToast] 按保存前是否有头像决定提示
@@ -75,17 +75,17 @@ export function useWechatAvatar(options = {}) {
 
     if (handleChooseAvatarError(errMsg)) return
 
-    const avatarUrl = detail.avatarUrl
-    if (!avatarUrl) {
+    const tempPath = detail.avatarUrl
+    if (!tempPath) {
       uni.showToast({ title: '未获取到头像，请重试', icon: 'none' })
       return
     }
 
     const hadAvatar = userStore.hasWechatAvatar
     avatarSaving.value = true
-    uni.showLoading({ title: '保存头像', mask: true })
+    uni.showLoading({ title: '上传头像', mask: true })
     try {
-      await userStore.saveWechatAvatar(avatarUrl)
+      await userStore.saveWechatAvatar(tempPath)
       const toast = resolveSuccessToast
         ? resolveSuccessToast(hadAvatar)
         : successToast
@@ -93,7 +93,7 @@ export function useWechatAvatar(options = {}) {
         uni.showToast({ title: toast })
       }
     } catch {
-      /* profile 请求已提示 */
+      /* upload / profile 已提示 */
     } finally {
       uni.hideLoading()
       avatarSaving.value = false
