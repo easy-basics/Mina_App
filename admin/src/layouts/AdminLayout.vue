@@ -3,7 +3,7 @@
     <el-aside width="220px" class="layout-aside">
       <div class="brand">
         <span class="brand-dot" />
-        布行管理后台
+        才汇纺织管理后台
       </div>
       <el-menu :default-active="activeMenu" router class="layout-menu">
         <el-menu-item index="/categories">

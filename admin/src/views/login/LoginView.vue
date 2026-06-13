@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-card">
-      <h1 class="title">布行管理后台</h1>
+      <h1 class="title">才汇纺织管理后台</h1>
       <p class="subtitle">请使用管理员账号登录</p>
       <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent="handleSubmit">
         <el-form-item prop="username">
