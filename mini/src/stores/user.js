@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { silentLoginWithWechat, persistAuth } from '@/utils/request'
 import { isH5DevAutoLoginEnabled } from '@/utils/devAuth'
 import { getMe, updateProfile } from '@/api/auth'
-import { uploadImage } from '@/api/upload'
 
 function persistUser(user) {
   persistAuth(undefined, user)
@@ -17,7 +16,7 @@ export const useUserStore = defineStore('user', {
   getters: {
     /** 已有后端会话（App 启动静默 wx.login 换取 token） */
     isLoggedIn: (s) => !!s.token,
-    /** 已完成头像授权（我的页 UI 门槛；chooseAvatar 上传后） */
+    /** 已完成头像授权（我的页 UI 门槛；chooseAvatar 保存微信 CDN 地址后） */
     hasWechatAvatar: (s) => !!s.user?.avatar,
     /** 我的页需引导用户选择头像（与 hasWechatAvatar 互斥） */
     needsAvatarLogin: (s) => !s.user?.avatar,
@@ -78,17 +77,14 @@ export const useUserStore = defineStore('user', {
       persistUser(res.data)
       return res.data
     },
-    /** 上传微信临时头像并保存到服务端 */
-    async saveWechatAvatar(tempFilePath) {
-      if (!tempFilePath) return null
+    /** 保存 chooseAvatar 返回的微信 CDN 头像地址到服务端 */
+    async saveWechatAvatar(avatarUrl) {
+      const url = avatarUrl?.trim()
+      if (!url) return null
 
-      const uploadAndSave = async () => {
+      const saveProfile = async () => {
         if (!this.token) {
           await this.silentLogin()
-        }
-        const url = await uploadImage(tempFilePath)
-        if (!url) {
-          throw new Error('头像上传失败')
         }
         const res = await updateProfile({ avatar: url })
         this.user = res.data
@@ -97,11 +93,12 @@ export const useUserStore = defineStore('user', {
       }
 
       try {
-        return await uploadAndSave()
+        return await saveProfile()
       } catch (e) {
-        if (String(e?.message || '').includes('请先登录')) {
+        const msg = String(e?.message || '')
+        if (msg.includes('请先登录') || msg.includes('登录已过期')) {
           await this.silentLogin()
-          return uploadAndSave()
+          return saveProfile()
         }
         throw e
       }

@@ -42,4 +42,15 @@ function toRelativeMediaPath(url) {
   return trimmed.startsWith('/') ? trimmed : null;
 }
 
-module.exports = { getPublicBaseUrl, toAbsoluteUrl, toRelativeMediaPath };
+/** 用户头像入库：/uploads/ 相对路径或微信 CDN 等 https 外链 */
+function toStoredAvatarUrl(url) {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  const local = toRelativeMediaPath(trimmed);
+  if (local) return local;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return null;
+}
+
+module.exports = { getPublicBaseUrl, toAbsoluteUrl, toRelativeMediaPath, toStoredAvatarUrl };

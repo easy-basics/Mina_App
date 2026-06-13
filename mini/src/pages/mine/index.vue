@@ -33,22 +33,13 @@
       <view v-else class="login-wrap">
         <!-- #ifdef MP-WEIXIN -->
         <button
-          v-if="needPrivacyTip"
-          id="privacy-agree-btn-mine"
+          id="privacy-avatar-btn-mine"
           class="login-btn-bar"
-          open-type="agreePrivacyAuthorization"
-          hover-class="login-btn-bar--hover"
-          @agreeprivacyauthorization="onAgreePrivacy"
-        >
-          登录
-        </button>
-        <button
-          v-else
-          class="login-btn-bar"
-          open-type="chooseAvatar"
+          open-type="chooseAvatar|agreePrivacyAuthorization"
           hover-class="login-btn-bar--hover"
           :disabled="avatarSaving"
           @chooseavatar="onChooseAvatar"
+          @agreeprivacyauthorization="onAgreePrivacy"
         >
           {{ loginBtnText }}
         </button>
@@ -118,7 +109,6 @@ const userStore = useUserStore()
 
 const {
   avatarSaving,
-  needPrivacyTip,
   avatarSrc,
   onChooseAvatar,
   onAgreePrivacy,
@@ -126,11 +116,10 @@ const {
 } = useWechatAvatar({
   successToast: null,
   resolveSuccessToast: (hadAvatar) => (hadAvatar ? null : '登录成功'),
-  retapAfterPrivacy: '请选择头像完成登录',
 })
 
 const loginBtnText = computed(() =>
-  avatarSaving.value ? '上传中…' : '登录'
+  avatarSaving.value ? '保存中…' : '登录'
 )
 
 function onAvatarUnsupported() {

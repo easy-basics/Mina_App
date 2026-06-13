@@ -10,17 +10,15 @@ import {
 } from '@/utils/wechatPrivacy'
 
 /**
- * 微信 chooseAvatar 选择与上传的共享逻辑。
+ * 微信 chooseAvatar 选择与保存的共享逻辑（直接存微信 CDN 地址，不上传文件）。
  * @param {object} [options]
  * @param {string|null} [options.successToast='头像已保存'] 保存成功提示；传 null 则不提示
  * @param {(hadAvatar: boolean) => string|null|undefined} [options.resolveSuccessToast] 按保存前是否有头像决定提示
- * @param {string|null} [options.retapAfterPrivacy=null] 同意隐私后提示再次点击（我的页登录用）
  */
 export function useWechatAvatar(options = {}) {
   const {
     successToast = '头像已保存',
     resolveSuccessToast = null,
-    retapAfterPrivacy = null,
   } = options
 
   const userStore = useUserStore()
@@ -39,11 +37,7 @@ export function useWechatAvatar(options = {}) {
     onAgreePrivacyAuthorization(e)
     if (e.detail?.errMsg === 'agreePrivacyAuthorization:ok') {
       needPrivacyTip.value = false
-      refreshPrivacyTip().then(() => {
-        if (retapAfterPrivacy) {
-          uni.showToast({ title: retapAfterPrivacy, icon: 'none' })
-        }
-      })
+      refreshPrivacyTip()
     }
   }
 
@@ -81,8 +75,8 @@ export function useWechatAvatar(options = {}) {
 
     if (handleChooseAvatarError(errMsg)) return
 
-    const tempPath = detail.avatarUrl
-    if (!tempPath) {
+    const avatarUrl = detail.avatarUrl
+    if (!avatarUrl) {
       uni.showToast({ title: '未获取到头像，请重试', icon: 'none' })
       return
     }
@@ -91,7 +85,7 @@ export function useWechatAvatar(options = {}) {
     avatarSaving.value = true
     uni.showLoading({ title: '保存头像', mask: true })
     try {
-      await userStore.saveWechatAvatar(tempPath)
+      await userStore.saveWechatAvatar(avatarUrl)
       const toast = resolveSuccessToast
         ? resolveSuccessToast(hadAvatar)
         : successToast
@@ -99,7 +93,7 @@ export function useWechatAvatar(options = {}) {
         uni.showToast({ title: toast })
       }
     } catch {
-      /* upload / profile 已提示 */
+      /* profile 请求已提示 */
     } finally {
       uni.hideLoading()
       avatarSaving.value = false

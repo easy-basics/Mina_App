@@ -27,7 +27,7 @@
       <!-- #ifndef MP-WEIXIN -->
       <image class="avatar" :src="avatarSrc" mode="aspectFill" />
       <!-- #endif -->
-      <text class="avatar-hint">{{ avatarSaving ? '上传中…' : '点击选择微信头像' }}</text>
+      <text class="avatar-hint">{{ avatarSaving ? '保存中…' : '点击选择微信头像' }}</text>
     </view>
 
     <view class="form-card">

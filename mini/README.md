@@ -70,8 +70,20 @@ H5 开发专用变量（仅 `import.meta.env.DEV` 且浏览器环境生效）：
 真机调试请将 `.env.development` 改为电脑局域网 IP，例如：
 
 ```env
-API_PUBLIC_URL=http://192.168.1.10:3000
+VITE_API_BASE_URL=http://192.168.1.10:3000/api
+VITE_ASSET_BASE_URL=http://192.168.1.10:3000
 ```
+
+### 微信头像（chooseAvatar）
+
+「我的」页登录与个人资料页换头像时，`chooseAvatar` 返回微信 CDN 地址（如 `https://thirdwx.qlogo.cn/...`），小程序直接 `PUT /profile` 保存该 URL，**不上传文件到自有服务器**。
+
+体验版/正式版需在 [微信公众平台](https://mp.weixin.qq.com/) → 开发 → 开发管理 → 开发设置 → 服务器域名，配置 **downloadFile 合法域名**（`<image>` 加载外链）：
+
+- `https://thirdwx.qlogo.cn`
+- （可选）`https://wx.qlogo.cn`、`https://mmbiz.qpic.cn`
+
+头像登录**不需要**配置 uploadFile 合法域名；商品图等本地上传仍走 `/mini/upload`，需单独配置 uploadFile。
 
 ## 微信登录（本地）
 
@@ -115,5 +127,5 @@ API_PUBLIC_URL=http://192.168.1.10:3000
 ## 生产上线
 
 1. `manifest.json` 填写 `mp-weixin.appid`
-2. 小程序后台配置 request 合法域名为 HTTPS API
+2. 小程序后台配置 request 合法域名为 HTTPS API；downloadFile 合法域名含 `https://thirdwx.qlogo.cn`（微信头像 CDN）
 3. `npm run build`，上传 `dist/build/mp-weixin`
