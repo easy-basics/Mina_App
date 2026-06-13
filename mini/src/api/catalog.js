@@ -4,6 +4,10 @@ export function getCategories() {
   return request({ url: '/mini/catalog/categories', auth: false })
 }
 
+export function getCategoryDetail(id) {
+  return request({ url: `/mini/catalog/categories/${id}`, auth: false })
+}
+
 export function getProducts(params) {
   return request({ url: '/mini/catalog/products', data: params, auth: false })
 }

@@ -42,13 +42,55 @@ router.get('/shop-info', async (req, res, next) => {
   }
 });
 
+function mapCategoryItem(c) {
+  return {
+    id: c.id,
+    name: c.name,
+    subtitle: c.subtitle,
+    coverImage: toAbsoluteUrl(c.coverImage),
+    sort: c.sort,
+    enabled: c.enabled,
+  };
+}
+
 router.get('/categories', async (req, res, next) => {
   try {
     const list = await prisma.category.findMany({
       where: { parentId: null, enabled: true },
       orderBy: [{ sort: 'asc' }, { id: 'asc' }],
     });
-    return success(res, list);
+    return success(res, list.map(mapCategoryItem));
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/categories/:id', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const category = await prisma.category.findFirst({
+      where: { id, parentId: null, enabled: true },
+    });
+    if (!category) {
+      return fail(res, '系列不存在或已停用', 404, 404);
+    }
+
+    const products = await prisma.product.findMany({
+      where: { categoryId: id, enabled: true },
+      orderBy: [{ sort: 'asc' }, { id: 'desc' }],
+      include: {
+        category: { select: { id: true, name: true } },
+        skus: {
+          where: { enabled: true },
+          select: { price: true },
+        },
+      },
+    });
+
+    return success(res, {
+      ...mapCategoryItem(category),
+      products: products.map(mapProductListItem),
+    });
   } catch (err) {
     return next(err);
   }

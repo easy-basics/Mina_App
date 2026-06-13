@@ -21,9 +21,21 @@
       }
     },
     {
+      "path": "pages/theme/index",
+      "style": {
+        "navigationBarTitleText": "浏览主题"
+      }
+    },
+    {
+      "path": "pages/theme/detail",
+      "style": {
+        "navigationBarTitleText": "主题详情页"
+      }
+    },
+    {
       "path": "pages/index",
       "style": {
-        "navigationBarTitleText": "浏览商品"
+        "navigationBarTitleText": "进店下单"
       }
     },
     {

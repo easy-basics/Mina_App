@@ -4,19 +4,22 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '')
-  const apiOrigin =
-    env.VITE_API_BASE_URL?.replace(/\/api\/?$/, '') || 'http://localhost:3000'
-  const assetOrigin =
-    env.VITE_ASSET_BASE_URL?.replace(/\/+$/, '') || apiOrigin
+
+  // 开发代理目标（本机 API），与 api 服务 PORT 一致
+  const apiTarget =
+    env.VITE_DEV_API_TARGET?.replace(/\/+$/, '') ||
+    'http://127.0.0.1:3000'
 
   const proxy = {
     '/api': {
-      target: apiOrigin,
+      target: apiTarget,
       changeOrigin: true,
+      secure: false,
     },
     '/uploads': {
-      target: assetOrigin,
+      target: apiTarget,
       changeOrigin: true,
+      secure: false,
     },
   }
 

@@ -35,13 +35,15 @@ model LoginAttempt {
 }
 
 model Category {
-  id        Int      @id @default(autoincrement())
-  parentId  Int?     @map("parent_id")
-  name      String   @db.VarChar(128)
-  sort      Int      @default(0)
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         Int      @id @default(autoincrement())
+  parentId   Int?     @map("parent_id")
+  name       String   @db.VarChar(128)
+  subtitle   String?  @db.VarChar(255)
+  coverImage String?  @map("cover_image") @db.VarChar(512)
+  sort       Int      @default(0)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   products Product[]
 

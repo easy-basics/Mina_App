@@ -71,7 +71,7 @@ router.put('/sort', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, sort = 0, enabled = true } = req.body;
+    const { name, subtitle, coverImage, sort = 0, enabled = true } = req.body;
     if (!name?.trim()) {
       return fail(res, '系列名称不能为空');
     }
@@ -79,6 +79,8 @@ router.post('/', async (req, res, next) => {
       data: {
         parentId: null,
         name: name.trim(),
+        subtitle: subtitle?.trim() || null,
+        coverImage: coverImage?.trim() || null,
         sort: Number(sort) || 0,
         enabled: Boolean(enabled),
       },
@@ -92,7 +94,7 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const { name, sort, enabled } = req.body;
+    const { name, subtitle, coverImage, sort, enabled } = req.body;
     if (!name?.trim()) {
       return fail(res, '系列名称不能为空');
     }
@@ -100,6 +102,8 @@ router.put('/:id', async (req, res, next) => {
       where: { id },
       data: {
         name: name.trim(),
+        subtitle: subtitle !== undefined ? (subtitle?.trim() || null) : undefined,
+        coverImage: coverImage !== undefined ? (coverImage?.trim() || null) : undefined,
         sort: sort !== undefined ? Number(sort) : undefined,
         enabled: enabled !== undefined ? Boolean(enabled) : undefined,
       },

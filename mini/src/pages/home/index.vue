@@ -24,11 +24,17 @@
     </view>
 
     <view class="menu-card">
+      <view class="menu-item" hover-class="menu-item--hover" @click="goTheme">
+        <view class="menu-icon">
+          <image class="menu-icon-img" :src="homeShopIcon" mode="aspectFit" />
+        </view>
+        <text class="menu-text">浏览商品</text>
+      </view>
       <view class="menu-item" hover-class="menu-item--hover" @click="goCatalog">
         <view class="menu-icon">
           <image class="menu-icon-img" :src="homeMenuIcon" mode="aspectFit" />
         </view>
-        <text class="menu-text">浏览商品</text>
+        <text class="menu-text">进店下单</text>
       </view>
       <view class="menu-item" hover-class="menu-item--hover" @click="goMine">
         <view class="menu-icon">
@@ -75,7 +81,8 @@ import { ref, nextTick, onMounted, computed } from 'vue'
 import HomeNavBar from '@/components/HomeNavBar.vue'
 import { getHomeProducts, getHomeContent } from '@/api/catalog'
 import { resolveImageUrl } from '@/utils/media'
-import homeMenuIcon from '../../../assets/svg/home-menu.svg'
+import homeMenuIcon from '../../../assets/svg/home-home.svg'
+import homeShopIcon from '../../../assets/svg/home-shop.svg'
 import homeUserIcon from '../../../assets/svg/home-user.svg'
 
 const DEFAULT_BANNERS = [
@@ -121,6 +128,10 @@ function onBannerTap(banner) {
   if (!link) return
   if (!link.startsWith('/pages/')) return
   uni.navigateTo({ url: link })
+}
+
+function goTheme() {
+  uni.navigateTo({ url: '/pages/theme/index' })
 }
 
 function goCatalog() {

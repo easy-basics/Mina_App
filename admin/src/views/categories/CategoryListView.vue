@@ -33,7 +33,14 @@
         </template>
       </el-table-column>
       <el-table-column prop="id" label="ID" width="70" />
-      <el-table-column prop="name" label="系列名称" min-width="160" />
+      <el-table-column label="主图" width="80">
+        <template #default="{ row }">
+          <img v-if="row.coverImage" :src="resolveMediaUrl(row.coverImage)" class="cover-thumb" alt="" />
+          <span v-else class="no-cover">无图</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="name" label="系列名称" min-width="140" />
+      <el-table-column prop="subtitle" label="子标题" min-width="140" show-overflow-tooltip />
       <el-table-column label="商品数" width="90">
         <template #default="{ row }">{{ row._count?.products ?? 0 }}</template>
       </el-table-column>
@@ -64,10 +71,22 @@
       />
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑系列' : '新增系列'" width="480px">
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑系列' : '新增系列'" width="520px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <el-form-item label="系列名称" prop="name">
           <el-input v-model="form.name" />
+        </el-form-item>
+        <el-form-item label="子标题" prop="subtitle">
+          <el-input v-model="form.subtitle" placeholder="如：2026主推" />
+        </el-form-item>
+        <el-form-item label="系列主图" prop="coverImage">
+          <el-upload :show-file-list="false" :http-request="handleUpload" accept="image/*">
+            <img v-if="form.coverImage" :src="resolveMediaUrl(form.coverImage)" class="upload-preview" alt="" />
+            <el-button v-else type="primary" plain>上传主图</el-button>
+          </el-upload>
+          <el-button v-if="form.coverImage" link type="danger" style="margin-left: 12px" @click="form.coverImage = ''">
+            移除
+          </el-button>
         </el-form-item>
         <el-form-item label="状态" prop="enabled">
           <el-switch v-model="form.enabled" />
@@ -93,6 +112,8 @@ import {
   updateCategory,
   deleteCategory,
 } from '@/api/categories'
+import { uploadFile } from '@/api/upload'
+import { resolveMediaUrl, toStoredMediaPath } from '@/utils/media'
 import { useTableDragSort } from '@/composables/useTableDragSort'
 
 const loading = ref(false)
@@ -106,7 +127,7 @@ const formRef = ref()
 const tableRef = ref()
 
 const query = reactive({ page: 1, pageSize: 20, keyword: '' })
-const form = reactive({ name: '', enabled: true })
+const form = reactive({ name: '', subtitle: '', coverImage: '', enabled: true })
 const rules = { name: [{ required: true, message: '请输入系列名称', trigger: 'blur' }] }
 
 async function loadData() {
@@ -157,9 +178,16 @@ function openDialog(row) {
   editingId.value = row?.id || null
   Object.assign(form, {
     name: row?.name || '',
+    subtitle: row?.subtitle || '',
+    coverImage: row?.coverImage || '',
     enabled: row?.enabled ?? true,
   })
   dialogVisible.value = true
+}
+
+async function handleUpload({ file }) {
+  const res = await uploadFile(file)
+  form.coverImage = toStoredMediaPath(res.data.url)
 }
 
 async function handleSubmit() {
@@ -195,5 +223,26 @@ onMounted(loadData)
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+.cover-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.no-cover {
+  color: #c0c4cc;
+  font-size: 12px;
+}
+
+.upload-preview {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+  cursor: pointer;
 }
 </style>

@@ -34,6 +34,7 @@
         <view v-if="loading" class="loading">加载中...</view>
       </scroll-view>
     </view>
+    <CatalogTabBar active="catalog" />
   </view>
 </template>
 
@@ -42,6 +43,7 @@ import { ref, computed, onMounted } from 'vue'
 import { getCategories, getProducts, getShopInfo } from '@/api/catalog'
 import ProductCard from '@/components/ProductCard.vue'
 import ShopInfoCard from '@/components/ShopInfoCard.vue'
+import CatalogTabBar from '@/components/CatalogTabBar.vue'
 
 const categories = ref([])
 const products = ref([])
@@ -120,6 +122,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  padding-bottom: calc(100rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 .search-bar {
   padding: 16rpx 24rpx;

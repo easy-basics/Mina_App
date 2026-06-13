@@ -7,7 +7,7 @@ const { UPLOADS_DIR, IMAGE_EXTS } = require('./uploadImageService');
 async function collectReferencedPaths() {
   const referenced = new Set();
 
-  const [products, detailImages, shopProfiles, users, homeBanners, brandIntros] = await Promise.all([
+  const [products, detailImages, shopProfiles, users, homeBanners, brandIntros, categories] = await Promise.all([
     prisma.product.findMany({ select: { coverImage: true } }),
     prisma.productDetailImage.findMany({ select: { url: true } }),
     prisma.shopProfile.findMany({ select: { coverImage: true } }),
@@ -16,6 +16,7 @@ async function collectReferencedPaths() {
     prisma.brandIntro.findMany({
       select: { homeCoverImage: true, introHeroImage: true },
     }),
+    prisma.category.findMany({ select: { coverImage: true } }),
   ]);
 
   for (const row of products) {
@@ -43,6 +44,10 @@ async function collectReferencedPaths() {
       const p = toRelativeMediaPath(field);
       if (p) referenced.add(p);
     }
+  }
+  for (const row of categories) {
+    const p = toRelativeMediaPath(row.coverImage);
+    if (p) referenced.add(p);
   }
 
   return referenced;
