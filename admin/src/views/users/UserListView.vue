@@ -49,9 +49,10 @@
       <el-table-column label="注册时间" width="170">
         <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="$router.push(`/users/${row.id}`)">详情</el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -73,7 +74,8 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { getUsers } from '@/api/users'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { deleteUser, getUsers } from '@/api/users'
 import { resolveMediaUrl } from '@/utils/media'
 
 const loading = ref(false)
@@ -111,6 +113,21 @@ async function loadData() {
   } finally {
     loading.value = false
   }
+}
+
+function userLabel(row) {
+  return row.nickname || row.openid || `ID ${row.id}`
+}
+
+async function handleDelete(row) {
+  await ElMessageBox.confirm(
+    `确定删除用户「${userLabel(row)}」吗？将永久删除该用户的所有数据（头像、订单、地址、收藏、购物车等），此操作不可恢复。`,
+    '删除确认',
+    { type: 'warning' }
+  )
+  await deleteUser(row.id)
+  ElMessage.success('删除成功')
+  loadData()
 }
 
 onMounted(loadData)

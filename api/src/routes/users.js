@@ -2,6 +2,7 @@ const express = require('express');
 const prisma = require('../utils/prisma');
 const { success, fail } = require('../utils/response');
 const { toRelativeMediaPath } = require('../utils/url');
+const { deleteUser } = require('../services/userService');
 
 const router = express.Router();
 
@@ -101,6 +102,19 @@ router.get('/:id', async (req, res, next) => {
       orders: user.orders.map(serializeOrder),
     });
   } catch (err) {
+    return next(err);
+  }
+});
+
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    await deleteUser(id);
+    return success(res, null, '删除成功');
+  } catch (err) {
+    if (err.status === 404) {
+      return fail(res, err.message, 404, 404);
+    }
     return next(err);
   }
 });

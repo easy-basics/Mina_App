@@ -2,6 +2,7 @@
   <div v-loading="loading" class="page-card">
     <div class="toolbar">
       <el-button @click="$router.back()">返回</el-button>
+      <el-button v-if="user" type="danger" @click="handleDelete">删除用户</el-button>
     </div>
 
     <template v-if="user">
@@ -80,12 +81,14 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { getUser } from '@/api/users'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { deleteUser, getUser } from '@/api/users'
 import { resolveMediaUrl } from '@/utils/media'
 import { getStatusLabel } from '@/constants/orders'
 
 const route = useRoute()
+const router = useRouter()
 const userId = Number(route.params.id)
 
 const loading = ref(false)
@@ -110,6 +113,27 @@ async function loadData() {
   } finally {
     loading.value = false
   }
+}
+
+function userLabel() {
+  if (!user.value) return ''
+  return user.value.nickname || user.value.openid || `ID ${user.value.id}`
+}
+
+async function handleDelete() {
+  if (!user.value) return
+  const stats = user.value._count
+  const detail = stats
+    ? `（订单 ${stats.orders ?? 0}、地址 ${stats.addresses ?? 0}、收藏 ${stats.favorites ?? 0}）`
+    : ''
+  await ElMessageBox.confirm(
+    `确定删除用户「${userLabel()}」${detail}吗？将永久删除该用户的所有数据（头像、订单、地址、收藏、购物车等），此操作不可恢复。`,
+    '删除确认',
+    { type: 'warning' }
+  )
+  await deleteUser(userId)
+  ElMessage.success('删除成功')
+  router.push('/users')
 }
 
 onMounted(loadData)

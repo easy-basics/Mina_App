@@ -7,3 +7,7 @@ export function getUsers(params) {
 export function getUser(id) {
   return request.get(`/users/${id}`)
 }
+
+export function deleteUser(id) {
+  return request.delete(`/users/${id}`)
+}
