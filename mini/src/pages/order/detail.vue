@@ -26,8 +26,18 @@
     <view class="card">
       <text class="section">商品明细</text>
       <view v-for="item in order.items" :key="item.id" class="item-row">
-        <text>{{ item.specName }} x {{ item.quantity }}</text>
-        <text>{{ order.orderType === 'bulk' ? '面议' : `¥${item.unitPrice}` }}</text>
+        <image
+          class="item-thumb"
+          :src="resolveImageUrl(item.coverImage, '/static/logo.svg')"
+          mode="aspectFill"
+        />
+        <view class="item-info">
+          <text class="item-name">{{ item.productName || '—' }}</text>
+          <text class="item-spec">{{ item.specName }} x {{ item.quantity }}</text>
+        </view>
+        <text class="item-price">
+          {{ order.orderType === 'bulk' ? '面议' : `¥${item.unitPrice}` }}
+        </text>
       </view>
     </view>
     <button
@@ -44,7 +54,8 @@
 import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getOrder } from '@/api/order'
-import { paySampleOrder } from '@/utils/payOrder'
+import { paySampleOrder, confirmOrderPaid } from '@/utils/payOrder'
+import { resolveImageUrl } from '@/utils/media'
 
 const order = ref(null)
 const orderId = ref(0)
@@ -69,6 +80,11 @@ async function doPay() {
     uni.showToast({ title: '支付成功' })
     load()
   } catch {
+    if (await confirmOrderPaid(orderId.value)) {
+      uni.showToast({ title: '支付成功' })
+      load()
+      return
+    }
     uni.showToast({ title: '支付失败', icon: 'none' })
   }
 }
@@ -101,10 +117,40 @@ onMounted(load)
 }
 .item-row {
   display: flex;
-  justify-content: space-between;
-  padding: 12rpx 0;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 0;
   border-bottom: 1rpx solid #f0f0f0;
   font-size: 26rpx;
+}
+.item-thumb {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+  background: #f5f5f5;
+}
+.item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.item-name {
+  font-size: 28rpx;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item-spec {
+  font-size: 24rpx;
+  color: #999;
+}
+.item-price {
+  flex-shrink: 0;
+  color: #333;
 }
 .pay-btn {
   margin: 32rpx;

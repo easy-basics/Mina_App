@@ -2,6 +2,7 @@ const prisma = require('../utils/prisma');
 const { generateOrderNo } = require('../utils/orderNo');
 const { ORDER_TYPES } = require('../constants/orders');
 const { buildPickupSnapshot } = require('../utils/shopConfig');
+const { ORDER_ITEM_WITH_PRODUCT, mapOrderItems } = require('../utils/orderSerialize');
 
 async function resolveOrderItems(items) {
   const skuIds = items.map((i) => Number(i.skuId));
@@ -117,7 +118,7 @@ async function createMiniOrder(userId, body) {
       },
     },
     include: {
-      items: true,
+      items: ORDER_ITEM_WITH_PRODUCT,
     },
   });
 
@@ -134,11 +135,7 @@ async function createMiniOrder(userId, body) {
   return {
     ...order,
     totalAmount: Number(order.totalAmount),
-    items: order.items.map((i) => ({
-      ...i,
-      quantity: Number(i.quantity),
-      unitPrice: Number(i.unitPrice),
-    })),
+    items: mapOrderItems(order.items),
   };
 }
 

@@ -1,1 +1,0 @@
-import{n as e}from"./index-v1pxwS2D.js";function t(t){let n=new FormData;return n.append(`file`,t),e.post(`/upload`,n,{headers:{"Content-Type":`multipart/form-data`}})}export{t};

@@ -77,7 +77,7 @@ import { ensureLogin } from '@/utils/request'
 import { ORDER_TYPES } from '@/constants/orders'
 import { useCheckoutStore } from '@/stores/checkout'
 import { useCartStore } from '@/stores/cart'
-import { paySampleOrder, showPayIncompleteModal, showPayErrorModal, isPayCancelled } from '@/utils/payOrder'
+import { paySampleOrder, showPayIncompleteModal, showPayErrorModal, isPayCancelled, confirmOrderPaid } from '@/utils/payOrder'
 
 const checkoutStore = useCheckoutStore()
 const cartStore = useCartStore()
@@ -210,7 +210,11 @@ async function submit() {
         const msg = e?.message || ''
         if (msg.includes('支付服务未就绪') || msg.includes('微信支付')) {
           await showPayErrorModal(msg)
-        } else if (!isPayCancelled(e)) {
+        } else if (isPayCancelled(e)) {
+          /* 用户主动取消，不提示 */
+        } else if (await confirmOrderPaid(order.id)) {
+          uni.showToast({ title: '支付成功' })
+        } else {
           await showPayIncompleteModal()
         }
       }

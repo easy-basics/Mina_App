@@ -3,6 +3,7 @@ const prisma = require('../utils/prisma');
 const { success, fail } = require('../utils/response');
 const { getStatusesForType } = require('../constants/orders');
 const { parsePickupSnapshot } = require('../utils/shopConfig');
+const { ORDER_ITEM_WITH_PRODUCT, mapOrderItems } = require('../utils/orderSerialize');
 
 const router = express.Router();
 
@@ -12,11 +13,7 @@ function serializeOrder(order) {
     ...rest,
     pickup: parsePickupSnapshot(pickupSnapshot),
     totalAmount: Number(order.totalAmount),
-    items: order.items?.map((item) => ({
-      ...item,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unitPrice),
-    })),
+    items: mapOrderItems(order.items),
   };
 }
 
@@ -73,7 +70,7 @@ router.get('/:id', async (req, res, next) => {
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        items: true,
+        items: ORDER_ITEM_WITH_PRODUCT,
         logs: {
           orderBy: { createdAt: 'desc' },
           include: { admin: { select: { id: true, username: true } } },

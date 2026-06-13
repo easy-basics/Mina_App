@@ -38,6 +38,20 @@
 
       <el-divider content-position="left">订单明细</el-divider>
       <el-table :data="order.items" border stripe>
+        <el-table-column label="主图" width="80" align="center">
+          <template #default="{ row }">
+            <img
+              v-if="row.coverImage"
+              :src="resolveMediaUrl(row.coverImage)"
+              class="product-thumb"
+              alt=""
+            />
+            <span v-else class="product-thumb-placeholder">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="商品名称" min-width="160">
+          <template #default="{ row }">{{ row.productName || '—' }}</template>
+        </el-table-column>
         <el-table-column prop="specName" label="规格" />
         <el-table-column label="数量" width="100">
           <template #default="{ row }">{{ row.quantity }}</template>
@@ -90,6 +104,7 @@ import {
   PAY_STATUS_LABELS,
   getStatusOptions,
 } from '@/constants/orders'
+import { resolveMediaUrl } from '@/utils/media'
 
 const route = useRoute()
 const orderId = Number(route.params.id)
@@ -170,5 +185,21 @@ onMounted(loadData)
   color: #909399;
   font-size: 12px;
   margin: 4px 0 0;
+}
+
+.product-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #f5f5f5;
+}
+
+.product-thumb-placeholder {
+  display: inline-block;
+  width: 48px;
+  color: #c0c4cc;
+  text-align: center;
 }
 </style>

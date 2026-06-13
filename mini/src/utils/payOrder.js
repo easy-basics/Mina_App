@@ -1,13 +1,22 @@
-import { payWechat, mockPaySuccess, syncPayStatus } from '@/api/order'
+import { payWechat, mockPaySuccess, syncPayStatus, getOrder } from '@/api/order'
 
-const SYNC_MAX_ATTEMPTS = 6
-const SYNC_DELAY_MS = 800
+const SYNC_MAX_ATTEMPTS = 8
+const SYNC_DELAY_MS = 1000
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-/** 轮询服务端同步微信支付结果（支付完成后微信侧可能有短暂延迟） */
+async function isOrderPaid(orderId) {
+  try {
+    const res = await getOrder(orderId)
+    return res.data?.payStatus === 'paid'
+  } catch {
+    return false
+  }
+}
+
+/** 轮询服务端同步微信支付结果（支付完成后微信侧/回调可能有短暂延迟） */
 async function trySyncPaid(orderId) {
   for (let i = 0; i < SYNC_MAX_ATTEMPTS; i++) {
     try {
@@ -16,9 +25,16 @@ async function trySyncPaid(orderId) {
     } catch (e) {
       console.warn('[pay] sync attempt failed', i + 1, e?.message || e)
     }
+    if (await isOrderPaid(orderId)) return true
     if (i < SYNC_MAX_ATTEMPTS - 1) await delay(SYNC_DELAY_MS)
   }
-  return false
+  return isOrderPaid(orderId)
+}
+
+/** 支付流程异常时，以订单实际 payStatus 为准 */
+export async function confirmOrderPaid(orderId) {
+  if (await isOrderPaid(orderId)) return true
+  return trySyncPaid(orderId)
 }
 
 function invokeRequestPayment(payment) {
@@ -53,15 +69,15 @@ export async function paySampleOrder(orderId) {
   try {
     await invokeRequestPayment(payment)
   } catch (payErr) {
-    // 少数情况下 requestPayment 报错但微信已扣款，尝试 sync 确认
+    // 微信常出现 requestPayment:fail 但已扣款；以订单/同步结果为准
     if (!isPayCancelled(payErr)) {
-      const synced = await trySyncPaid(orderId)
-      if (synced) return { paid: true, mock: false, recovered: true }
+      if (await confirmOrderPaid(orderId)) {
+        return { paid: true, mock: false, recovered: true }
+      }
     }
     throw payErr
   }
 
-  // 用户已在微信完成支付；sync 失败不应视为未支付（回调会最终对齐订单状态）
   await trySyncPaid(orderId)
   return { paid: true, mock: false }
 }

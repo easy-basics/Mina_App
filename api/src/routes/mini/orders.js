@@ -4,6 +4,7 @@ const { success, fail } = require('../../utils/response');
 const miniUserMiddleware = require('../../middleware/miniUser');
 const { createMiniOrder } = require('../../services/miniOrderService');
 const { parsePickupSnapshot } = require('../../utils/shopConfig');
+const { ORDER_ITEM_WITH_PRODUCT, mapOrderItems } = require('../../utils/orderSerialize');
 const {
   SAMPLE_STATUS_LABELS,
   BULK_STATUS_LABELS,
@@ -24,11 +25,7 @@ function serializeOrder(order) {
     payStatusLabel:
       { unpaid: '未支付', paid: '已支付', offline: '线下支付' }[order.payStatus] ||
       order.payStatus,
-    items: order.items?.map((i) => ({
-      ...i,
-      quantity: Number(i.quantity),
-      unitPrice: Number(i.unitPrice),
-    })),
+    items: mapOrderItems(order.items),
   };
 }
 
@@ -76,7 +73,7 @@ router.get('/:id', async (req, res, next) => {
     const order = await prisma.order.findFirst({
       where: { id, userId: req.user.id },
       include: {
-        items: true,
+        items: ORDER_ITEM_WITH_PRODUCT,
       },
     });
     if (!order) {
