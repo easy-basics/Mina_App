@@ -41,7 +41,40 @@ async function resolveStaticImage(relPath) {
   return url;
 }
 
+function assertHomeContentClient(prisma) {
+  if (!prisma.homeBanner?.count) {
+    const err = new Error(
+      'Prisma Client 未包含首页内容模型（homeBanner 等）。请先执行: npx prisma generate，再重新运行 seed'
+    );
+    err.code = 'PRISMA_CLIENT_STALE';
+    throw err;
+  }
+}
+
 async function seedHomeContent(prisma) {
+  // #region agent log
+  fetch('http://127.0.0.1:7330/ingest/418692a6-e25a-4dfd-af5a-2582b4c9bc43', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dc28fe' },
+    body: JSON.stringify({
+      sessionId: 'dc28fe',
+      runId: 'pre-fix',
+      hypothesisId: 'A',
+      location: 'seedHomeContent.js:seedHomeContent',
+      message: 'prisma home content delegate check',
+      data: {
+        hasHomeBanner: Boolean(prisma.homeBanner?.count),
+        hasBrandIntro: Boolean(prisma.brandIntro?.upsert),
+        hasBrandIntroSection: Boolean(prisma.brandIntroSection?.count),
+        delegateKeys: Object.keys(prisma).filter((k) => !k.startsWith('$') && !k.startsWith('_')),
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  assertHomeContentClient(prisma);
+
   const bannerCount = await prisma.homeBanner.count();
   if (bannerCount === 0) {
     const bannerSources = [

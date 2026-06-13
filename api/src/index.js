@@ -13,7 +13,7 @@ async function start() {
     console.error(getConnectionErrorMessage());
     console.error('\n当前 DATABASE_URL:', process.env.DATABASE_URL?.replace(/:([^:@/]+)@/, ':***@') || '(未设置)');
     console.error('\n请按 README 配置 MySQL 后执行:');
-    console.error('  cd api && npx prisma migrate deploy && npm run prisma:seed\n');
+    console.error('  cd api && npm run db:setup\n');
     if (dbCheck?.message) {
       console.error('详情:', dbCheck.message.split('\n')[0]);
     }
