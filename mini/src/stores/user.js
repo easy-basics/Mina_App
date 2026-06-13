@@ -15,9 +15,12 @@ export const useUserStore = defineStore('user', {
     authReady: false,
   }),
   getters: {
+    /** 已有后端会话（App 启动静默 wx.login 换取 token） */
     isLoggedIn: (s) => !!s.token,
-    /** 已设置过头像（微信 chooseAvatar 上传后） */
+    /** 已完成头像授权（我的页 UI 门槛；chooseAvatar 上传后） */
     hasWechatAvatar: (s) => !!s.user?.avatar,
+    /** 我的页需引导用户选择头像（与 hasWechatAvatar 互斥） */
+    needsAvatarLogin: (s) => !s.user?.avatar,
     /** 姓名、手机号、公司名均已填写（与个人资料页保存校验一致） */
     hasRegisteredProfile: (s) => {
       const u = s.user
@@ -78,17 +81,30 @@ export const useUserStore = defineStore('user', {
     /** 上传微信临时头像并保存到服务端 */
     async saveWechatAvatar(tempFilePath) {
       if (!tempFilePath) return null
-      if (!this.token) {
-        await this.silentLogin()
+
+      const uploadAndSave = async () => {
+        if (!this.token) {
+          await this.silentLogin()
+        }
+        const url = await uploadImage(tempFilePath)
+        if (!url) {
+          throw new Error('头像上传失败')
+        }
+        const res = await updateProfile({ avatar: url })
+        this.user = res.data
+        persistUser(res.data)
+        return res.data
       }
-      const url = await uploadImage(tempFilePath)
-      if (!url) {
-        throw new Error('头像上传失败')
+
+      try {
+        return await uploadAndSave()
+      } catch (e) {
+        if (String(e?.message || '').includes('请先登录')) {
+          await this.silentLogin()
+          return uploadAndSave()
+        }
+        throw e
       }
-      const res = await updateProfile({ avatar: url })
-      this.user = res.data
-      persistUser(res.data)
-      return res.data
     },
     patchUser(user) {
       this.user = { ...this.user, ...user }

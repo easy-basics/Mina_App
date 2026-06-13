@@ -1,5 +1,13 @@
 <template>
   <view class="page">
+    <!-- #ifdef MP-WEIXIN -->
+    <view v-if="needPrivacyTip" class="privacy-tip">
+      <text class="privacy-tip-text">登录前需同意</text>
+      <text class="privacy-link" @click="openPrivacyContract">《用户隐私保护指引》</text>
+      <text class="privacy-tip-text">，请点击下方「登录」并在微信弹窗中选择同意。</text>
+    </view>
+    <!-- #endif -->
+
     <view class="user-section">
       <view v-if="userStore.hasWechatAvatar" class="user-info">
         <view class="user-main">
@@ -9,7 +17,7 @@
             class="avatar-picker"
             open-type="chooseAvatar|agreePrivacyAuthorization"
             hover-class="none"
-            :disabled="authorizing"
+            :disabled="avatarSaving"
             @chooseavatar="onChooseAvatar"
             @agreeprivacyauthorization="onAgreePrivacy"
           >
@@ -37,17 +45,17 @@
           class="login-btn"
           open-type="chooseAvatar|agreePrivacyAuthorization"
           hover-class="none"
-          :disabled="authorizing"
+          :disabled="avatarSaving"
           @chooseavatar="onChooseAvatar"
           @agreeprivacyauthorization="onAgreePrivacy"
         >
-          <image class="login-avatar" :src="avatarSrc" mode="aspectFill" />
+          <view class="login-avatar login-avatar--placeholder" />
           <text class="login-text">{{ loginBtnText }}</text>
         </button>
         <!-- #endif -->
         <!-- #ifndef MP-WEIXIN -->
-        <button class="login-btn" :disabled="authorizing" @click="onAvatarUnsupported">
-          微信登录
+        <button class="login-btn" :disabled="avatarSaving" @click="onAvatarUnsupported">
+          登录
         </button>
         <!-- #endif -->
       </view>
@@ -88,73 +96,37 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { ensureLogin } from '@/utils/request'
-import { resolveImageUrl } from '@/utils/media'
-import { TECH_SUPPORT_TEXT, DEFAULT_AVATAR } from '@/config'
-import {
-  getPrivacyNeedAuthorization,
-  onAgreePrivacyAuthorization,
-  showPrivacyNotDeclaredHelp,
-} from '@/utils/wechatPrivacy'
+import { TECH_SUPPORT_TEXT } from '@/config'
+import { getPrivacyNeedAuthorization } from '@/utils/wechatPrivacy'
+import { useWechatAvatar } from '@/composables/useWechatAvatar'
 import MineCell from '@/components/MineCell.vue'
 
 const userStore = useUserStore()
-const authorizing = ref(false)
 
-const avatarSrc = computed(() =>
-  resolveImageUrl(userStore.mineAvatar, DEFAULT_AVATAR)
-)
-
-const loginBtnText = computed(() => {
-  if (authorizing.value) return '上传中…'
-  return userStore.isLoggedIn ? '选择微信头像' : '微信登录'
+const {
+  avatarSaving,
+  needPrivacyTip,
+  avatarSrc,
+  onChooseAvatar,
+  onAgreePrivacy,
+  refreshPrivacyTip,
+  openPrivacyContract,
+} = useWechatAvatar({
+  successToast: null,
+  resolveSuccessToast: (hadAvatar) => (hadAvatar ? null : '登录成功'),
+  retapAfterPrivacy: '请再次点击登录选择头像',
 })
 
-function onAgreePrivacy(e) {
-  onAgreePrivacyAuthorization(e)
-}
+const loginBtnText = computed(() =>
+  avatarSaving.value ? '上传中…' : '登录'
+)
 
 function onAvatarUnsupported() {
   uni.showToast({ title: '请在微信小程序中使用', icon: 'none' })
-}
-
-async function onChooseAvatar(e) {
-  const detail = e?.detail || {}
-  const errMsg = detail.errMsg || ''
-
-  if (errMsg && errMsg !== 'chooseAvatar:ok') {
-    if (errMsg.includes('not declared')) {
-      showPrivacyNotDeclaredHelp('选择微信头像')
-      return
-    }
-    if (errMsg.includes('cancel')) return
-    uni.showToast({ title: '选择头像失败', icon: 'none' })
-    return
-  }
-
-  const tempPath = detail.avatarUrl
-  if (!tempPath) {
-    uni.showToast({ title: '未获取到头像，请重试', icon: 'none' })
-    return
-  }
-
-  const hadAvatar = userStore.hasWechatAvatar
-  authorizing.value = true
-  uni.showLoading({ title: '保存头像', mask: true })
-  try {
-    await userStore.saveWechatAvatar(tempPath)
-    if (!hadAvatar) {
-      uni.showToast({ title: '登录成功' })
-    }
-  } catch {
-    /* upload / profile 已提示 */
-  } finally {
-    uni.hideLoading()
-    authorizing.value = false
-  }
 }
 
 function go(url) {
@@ -162,7 +134,7 @@ function go(url) {
   uni.navigateTo({ url })
 }
 
-/** 若仍待同意隐私协议，先触发官方授权（手机号/地址已配时通常已同意） */
+/** 若仍待同意隐私协议，先触发官方授权 */
 async function ensurePrivacyReady() {
   // #ifdef MP-WEIXIN
   const need = await getPrivacyNeedAuthorization()
@@ -182,7 +154,7 @@ onShow(async () => {
     try {
       await userStore.silentLogin()
     } catch {
-      return
+      uni.showToast({ title: '登录失败，请检查网络后重试', icon: 'none' })
     }
   }
   try {
@@ -190,6 +162,7 @@ onShow(async () => {
   } catch {
     /* ignore */
   }
+  await refreshPrivacyTip()
   await ensurePrivacyReady()
 })
 </script>
@@ -198,6 +171,21 @@ onShow(async () => {
 .page {
   min-height: 100vh;
   padding-bottom: 48rpx;
+}
+.privacy-tip {
+  margin: 16rpx 24rpx 0;
+  padding: 20rpx 24rpx;
+  background: #fff8f0;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #666;
+}
+.privacy-tip-text {
+  color: #666;
+}
+.privacy-link {
+  color: var(--color-primary);
 }
 .user-section {
   background: #fff;
@@ -274,6 +262,20 @@ onShow(async () => {
   border-radius: 50%;
   background: #f0f0f0;
   margin-bottom: 20rpx;
+}
+.login-avatar--placeholder {
+  position: relative;
+}
+.login-avatar--placeholder::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48rpx;
+  height: 48rpx;
+  background: #ccc;
+  border-radius: 50%;
 }
 .login-text {
   font-size: 30rpx;

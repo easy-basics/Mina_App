@@ -92,29 +92,36 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { updateProfile, bindPhone } from '@/api/auth'
 import { ensureLogin } from '@/utils/request'
-import { resolveImageUrl } from '@/utils/media'
-import { DEFAULT_AVATAR } from '@/config'
 import {
   onAgreePrivacyAuthorization,
-  getPrivacyNeedAuthorization,
-  openPrivacyContract,
   showPrivacyNotDeclaredHelp,
 } from '@/utils/wechatPrivacy'
+import { useWechatAvatar } from '@/composables/useWechatAvatar'
 
 const userStore = useUserStore()
 const saving = ref(false)
-const avatarSaving = ref(false)
 const dirty = ref(false)
-const needPrivacyTip = ref(false)
 
-const avatarSrc = computed(() =>
-  resolveImageUrl(userStore.mineAvatar, DEFAULT_AVATAR)
-)
+const {
+  avatarSaving,
+  needPrivacyTip,
+  avatarSrc,
+  onChooseAvatar,
+  refreshPrivacyTip,
+  openPrivacyContract,
+} = useWechatAvatar()
+
+function onAgreePrivacy(e) {
+  onAgreePrivacyAuthorization(e)
+  if (e.detail?.errMsg === 'agreePrivacyAuthorization:ok') {
+    needPrivacyTip.value = false
+  }
+}
 
 const form = reactive({
   realName: '',
@@ -136,7 +143,7 @@ async function load() {
   if (!ensureLogin()) return
   await userStore.fetchProfile()
   syncForm()
-  needPrivacyTip.value = await getPrivacyNeedAuthorization()
+  await refreshPrivacyTip()
 }
 
 function validate() {
@@ -216,46 +223,6 @@ async function onGetPhone(e) {
   }
   if (errMsg && errMsg !== 'getPhoneNumber:ok') {
     uni.showToast({ title: '获取手机号失败', icon: 'none' })
-  }
-}
-
-function onAgreePrivacy(e) {
-  onAgreePrivacyAuthorization(e)
-  if (e.detail?.errMsg === 'agreePrivacyAuthorization:ok') {
-    needPrivacyTip.value = false
-  }
-}
-
-async function onChooseAvatar(e) {
-  const detail = e?.detail || {}
-  const errMsg = detail.errMsg || ''
-
-  if (errMsg && errMsg !== 'chooseAvatar:ok') {
-    if (errMsg.includes('not declared')) {
-      showPrivacyNotDeclaredHelp('选择微信头像')
-      return
-    }
-    if (errMsg.includes('cancel')) return
-    uni.showToast({ title: '选择头像失败', icon: 'none' })
-    return
-  }
-
-  const tempPath = detail.avatarUrl
-  if (!tempPath) {
-    uni.showToast({ title: '未获取到头像，请重试', icon: 'none' })
-    return
-  }
-
-  avatarSaving.value = true
-  uni.showLoading({ title: '保存头像', mask: true })
-  try {
-    await userStore.saveWechatAvatar(tempPath)
-    uni.showToast({ title: '头像已保存' })
-  } catch {
-    /* upload / profile 已提示 */
-  } finally {
-    uni.hideLoading()
-    avatarSaving.value = false
   }
 }
 

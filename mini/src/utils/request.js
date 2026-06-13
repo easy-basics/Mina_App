@@ -37,6 +37,9 @@ export function request(options) {
         if (body.code !== 0) {
           if (res.statusCode === 401 || body.code === 401) {
             persistAuth('', null)
+            import('@/stores/user').then(({ useUserStore }) => {
+              useUserStore().logout()
+            })
             uni.showToast({ title: body.message || '请重新登录', icon: 'none' })
           } else {
             uni.showToast({ title: body.message || '请求失败', icon: 'none' })
