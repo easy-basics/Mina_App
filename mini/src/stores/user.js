@@ -28,14 +28,13 @@ export const useUserStore = defineStore('user', {
       const av = s.user?.avatar
       return !av || isWechatLocalTempUrl(av)
     },
-    /** 姓名、手机号、公司名均已填写（与个人资料页保存校验一致） */
+    /** 姓名、手机号均已填写（与个人资料页保存校验一致） */
     hasRegisteredProfile: (s) => {
       const u = s.user
       if (!u) return false
       const name = u.realName?.trim()
       const phone = u.phone?.trim()
-      const company = u.companyName?.trim()
-      return !!(name && /^1\d{10}$/.test(phone) && company)
+      return !!(name && /^1\d{10}$/.test(phone))
     },
     displayName: (s) => s.user?.realName || s.user?.nickname || '微信用户',
     mineAvatar: (s) => s.user?.avatar || '',

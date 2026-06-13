@@ -80,6 +80,11 @@ function formatUser(user) {
   };
 }
 
+function normalizeOptionalString(value) {
+  if (value == null) return '';
+  return String(value).trim();
+}
+
 router.get('/me', miniUserMiddleware, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
@@ -100,35 +105,38 @@ router.put('/profile', miniUserMiddleware, async (req, res, next) => {
     const { nickname, avatar, phone, realName, companyName, companyAddress } = req.body;
     const data = {};
 
-    if (nickname !== undefined) data.nickname = nickname?.trim() || null;
+    if (nickname !== undefined) {
+      const n = normalizeOptionalString(nickname);
+      data.nickname = n || null;
+    }
     if (avatar !== undefined) {
-      const url = avatar?.trim();
+      const url = normalizeOptionalString(avatar);
       data.avatar = url ? toStoredAvatarUrl(url) : null;
     }
     if (phone !== undefined) {
-      const p = phone?.trim();
+      const p = normalizeOptionalString(phone);
       if (p && !/^1\d{10}$/.test(p)) {
         return fail(res, '手机号格式不正确');
       }
       data.phone = p || null;
     }
     if (realName !== undefined) {
-      const name = realName?.trim();
-      if (name !== null && name !== '' && name.length > 32) {
+      const name = normalizeOptionalString(realName);
+      if (name.length > 32) {
         return fail(res, '姓名不能超过32字');
       }
       data.realName = name || null;
     }
     if (companyName !== undefined) {
-      const company = companyName?.trim();
-      if (company !== null && company !== '' && company.length > 128) {
+      const company = normalizeOptionalString(companyName);
+      if (company.length > 128) {
         return fail(res, '公司名不能超过128字');
       }
       data.companyName = company || null;
     }
     if (companyAddress !== undefined) {
-      const addr = companyAddress?.trim();
-      if (addr !== null && addr !== '' && addr.length > 255) {
+      const addr = normalizeOptionalString(companyAddress);
+      if (addr.length > 255) {
         return fail(res, '公司地址不能超过255字');
       }
       data.companyAddress = addr || null;

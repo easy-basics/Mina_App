@@ -68,11 +68,11 @@
         </view>
       </view>
       <view class="form-row">
-        <text class="label"><text class="required">*</text>公司名</text>
+        <text class="label">公司名</text>
         <input
           v-model="form.companyName"
           class="input"
-          placeholder="请输入公司名或品牌名，没有填：无"
+          placeholder="选填"
           maxlength="128"
         />
       </view>
@@ -155,10 +155,6 @@ function validate() {
     uni.showToast({ title: '请填写正确手机号', icon: 'none' })
     return false
   }
-  if (!form.companyName.trim()) {
-    uni.showToast({ title: '请填写公司名', icon: 'none' })
-    return false
-  }
   return true
 }
 
@@ -169,7 +165,7 @@ async function save() {
     const res = await updateProfile({
       realName: form.realName.trim(),
       phone: form.phone.trim(),
-      companyName: form.companyName.trim(),
+      companyName: form.companyName.trim() || null,
       companyAddress: form.companyAddress.trim() || null,
     })
     userStore.patchUser(res.data)

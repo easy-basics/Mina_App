@@ -77,7 +77,7 @@ import { ensureLogin } from '@/utils/request'
 import { ORDER_TYPES } from '@/constants/orders'
 import { useCheckoutStore } from '@/stores/checkout'
 import { useCartStore } from '@/stores/cart'
-import { paySampleOrder, showPayIncompleteModal, showPayErrorModal } from '@/utils/payOrder'
+import { paySampleOrder, showPayIncompleteModal, showPayErrorModal, isPayCancelled } from '@/utils/payOrder'
 
 const checkoutStore = useCheckoutStore()
 const cartStore = useCartStore()
@@ -210,7 +210,7 @@ async function submit() {
         const msg = e?.message || ''
         if (msg.includes('支付服务未就绪') || msg.includes('微信支付')) {
           await showPayErrorModal(msg)
-        } else {
+        } else if (!isPayCancelled(e)) {
           await showPayIncompleteModal()
         }
       }

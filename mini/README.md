@@ -76,6 +76,17 @@ VITE_ASSET_BASE_URL=http://192.168.1.10:3000
 
 真机预览头像上传时，须配置 **uploadFile 合法域名**（与 request 相同，如 `https://api.mina.bigdeng.com`），且 API 地址须为手机可访问的局域网 IP 或 HTTPS 域名（不能用 `127.0.0.1`）。
 
+### 体验版头像上传失败（本地/真机调试正常）
+
+体验版与正式版**强制校验**服务器域名；开发者工具「不校验合法域名」与真机调试**不会**带到体验版。
+
+1. 登录 [微信公众平台](https://mp.weixin.qq.com/) → **开发** → **开发管理** → **开发设置** → **服务器域名**
+2. 除 **request 合法域名** 外，必须单独配置 **uploadFile 合法域名**（仅填域名，不要带路径）：
+   - `https://api.mina.bigdeng.com`
+3. request 与 uploadFile **都要配**；只配 request 时登录可用、头像上传仍会失败
+4. 保存后等待约 5 分钟生效，**完全退出**体验版小程序再重新打开
+5. 确认体验版由 `npm run build`（读取 `.env.production`）构建后上传，上传地址应为 `https://api.mina.bigdeng.com/api/mini/upload`
+
 ## 微信登录（本地）
 
 未配置 `WECHAT_APPID` 时，API 使用 `WECHAT_DEV_OPENID` 模拟登录（见 `api/.env`）。
