@@ -7,7 +7,7 @@
         class="search-input"
         placeholder="搜索想要的商品"
         confirm-type="search"
-        @confirm="loadProducts"
+        @confirm="() => loadProducts(true)"
       />
     </view>
     <view class="main">
@@ -16,7 +16,7 @@
           v-for="cat in categories"
           :key="cat.id"
           class="cat-item"
-          :class="{ active: cat.id === activeCategoryId }"
+          :class="{ active: cat.id === activeCategoryId && !isGlobalSearch }"
           @click="selectCategory(cat.id)"
         >
           {{ cat.name }}
@@ -28,7 +28,9 @@
             <ProductCard :product="p" @click="(item) => goDetail(item.id)" />
           </view>
         </view>
-        <view v-if="!loading && products.length === 0" class="empty">暂无商品</view>
+        <view v-if="!loading && products.length === 0" class="empty">
+          {{ isGlobalSearch ? '未找到相关商品' : '暂无商品' }}
+        </view>
         <view v-if="loading" class="loading">加载中...</view>
       </scroll-view>
     </view>
@@ -36,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getCategories, getProducts, getShopInfo } from '@/api/catalog'
 import ProductCard from '@/components/ProductCard.vue'
 import ShopInfoCard from '@/components/ShopInfoCard.vue'
@@ -49,6 +51,8 @@ const keyword = ref('')
 const loading = ref(false)
 const page = ref(1)
 const total = ref(0)
+
+const isGlobalSearch = computed(() => !!keyword.value.trim())
 
 async function loadShopInfo() {
   try {
@@ -71,10 +75,10 @@ async function loadCategories() {
 async function loadProducts(reset = false) {
   if (reset) page.value = 1
   loading.value = true
+  const kw = keyword.value.trim()
   try {
     const res = await getProducts({
-      categoryId: activeCategoryId.value,
-      keyword: keyword.value,
+      ...(kw ? { keyword: kw } : { categoryId: activeCategoryId.value }),
       page: page.value,
       pageSize: 20,
     })
@@ -90,6 +94,7 @@ async function loadProducts(reset = false) {
 }
 
 function selectCategory(id) {
+  keyword.value = ''
   activeCategoryId.value = id
   loadProducts(true)
 }

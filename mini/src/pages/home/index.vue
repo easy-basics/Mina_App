@@ -26,21 +26,13 @@
     <view class="menu-card">
       <view class="menu-item" hover-class="menu-item--hover" @click="goCatalog">
         <view class="menu-icon">
-          <view class="icon-grid">
-            <view class="grid-cell" />
-            <view class="grid-cell" />
-            <view class="grid-cell" />
-            <view class="grid-cell" />
-          </view>
+          <image class="menu-icon-img" :src="homeMenuIcon" mode="aspectFit" />
         </view>
         <text class="menu-text">浏览商品</text>
       </view>
       <view class="menu-item" hover-class="menu-item--hover" @click="goMine">
         <view class="menu-icon">
-          <view class="icon-user">
-            <view class="user-head" />
-            <view class="user-body" />
-          </view>
+          <image class="menu-icon-img" :src="homeUserIcon" mode="aspectFit" />
         </view>
         <text class="menu-text">我的</text>
       </view>
@@ -83,6 +75,8 @@ import { ref, nextTick, onMounted, computed } from 'vue'
 import HomeNavBar from '@/components/HomeNavBar.vue'
 import { getHomeProducts, getHomeContent } from '@/api/catalog'
 import { resolveImageUrl } from '@/utils/media'
+import homeMenuIcon from '../../../assets/svg/home-menu.svg'
+import homeUserIcon from '../../../assets/svg/home-user.svg'
 
 const DEFAULT_BANNERS = [
   '/static/banner/ban1.jpg',
@@ -262,89 +256,9 @@ onMounted(() => {
   font-weight: 500;
 }
 
-/* 浏览商品 - 网格图标 */
-.icon-grid {
-  display: flex;
-  flex-wrap: wrap;
-  width: 40rpx;
-  height: 40rpx;
-  gap: 6rpx;
-}
-
-.grid-cell {
-  width: 16rpx;
-  height: 16rpx;
-  background: #fff;
-  border-radius: 3rpx;
-}
-
-/* 购物车图标 */
-.icon-cart {
-  position: relative;
+.menu-icon-img {
   width: 44rpx;
-  height: 40rpx;
-}
-
-.cart-body {
-  position: absolute;
-  top: 4rpx;
-  left: 4rpx;
-  width: 36rpx;
-  height: 24rpx;
-  border: 4rpx solid #fff;
-  border-radius: 4rpx 4rpx 8rpx 8rpx;
-  border-top: none;
-}
-
-.cart-body::before {
-  content: '';
-  position: absolute;
-  top: -14rpx;
-  left: -2rpx;
-  width: 16rpx;
-  height: 12rpx;
-  border: 4rpx solid #fff;
-  border-bottom: none;
-  border-radius: 8rpx 8rpx 0 0;
-}
-
-.cart-wheel {
-  position: absolute;
-  bottom: 0;
-  width: 10rpx;
-  height: 10rpx;
-  background: #fff;
-  border-radius: 50%;
-}
-
-.cart-wheel-l {
-  left: 10rpx;
-}
-
-.cart-wheel-r {
-  right: 10rpx;
-}
-
-/* 用户图标 */
-.icon-user {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4rpx;
-}
-
-.user-head {
-  width: 28rpx;
-  height: 28rpx;
-  background: #fff;
-  border-radius: 50%;
-}
-
-.user-body {
-  width: 44rpx;
-  height: 22rpx;
-  background: #fff;
-  border-radius: 22rpx 22rpx 0 0;
+  height: 44rpx;
 }
 
 .brand-card {

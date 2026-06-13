@@ -4,11 +4,11 @@
       <view class="nav-left">
         <view class="nav-pill">
           <view class="pill-btn" @click="emit('home')">
-            <image class="pill-icon" src="/static/icons/nav-home-light.svg" mode="aspectFit" />
+            <image class="pill-icon" :src="navHomeLightIcon" mode="aspectFit" />
           </view>
           <view class="pill-divider" />
           <view class="pill-btn" @click="emit('search')">
-            <image class="pill-icon" src="/static/icons/nav-search-light.svg" mode="aspectFit" />
+            <image class="pill-icon" :src="navSearchLightIcon" mode="aspectFit" />
           </view>
         </view>
       </view>
@@ -21,6 +21,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getNavBarMetrics } from '@/utils/navbar'
+import navHomeLightIcon from '../../assets/svg/nav-home-light.svg'
+import navSearchLightIcon from '../../assets/svg/nav-search-light.svg'
 
 defineProps({
   title: { type: String, default: '品牌首页' },

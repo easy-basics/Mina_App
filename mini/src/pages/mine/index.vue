@@ -1,13 +1,5 @@
 <template>
   <view class="page">
-    <!-- #ifdef MP-WEIXIN -->
-    <view v-if="needPrivacyTip" class="privacy-tip">
-      <text class="privacy-tip-text">登录前需同意</text>
-      <text class="privacy-link" @click="openPrivacyContract">《用户隐私保护指引》</text>
-      <text class="privacy-tip-text">，请点击下方「登录」并在微信弹窗中选择同意。</text>
-    </view>
-    <!-- #endif -->
-
     <view class="user-section">
       <view v-if="userStore.hasWechatAvatar" class="user-info">
         <view class="user-main">
@@ -41,20 +33,28 @@
       <view v-else class="login-wrap">
         <!-- #ifdef MP-WEIXIN -->
         <button
-          id="privacy-avatar-btn"
-          class="login-btn"
-          open-type="chooseAvatar|agreePrivacyAuthorization"
-          hover-class="none"
-          :disabled="avatarSaving"
-          @chooseavatar="onChooseAvatar"
+          v-if="needPrivacyTip"
+          id="privacy-agree-btn-mine"
+          class="login-btn-bar"
+          open-type="agreePrivacyAuthorization"
+          hover-class="login-btn-bar--hover"
           @agreeprivacyauthorization="onAgreePrivacy"
         >
-          <view class="login-avatar login-avatar--placeholder" />
-          <text class="login-text">{{ loginBtnText }}</text>
+          登录
+        </button>
+        <button
+          v-else
+          class="login-btn-bar"
+          open-type="chooseAvatar"
+          hover-class="login-btn-bar--hover"
+          :disabled="avatarSaving"
+          @chooseavatar="onChooseAvatar"
+        >
+          {{ loginBtnText }}
         </button>
         <!-- #endif -->
         <!-- #ifndef MP-WEIXIN -->
-        <button class="login-btn" :disabled="avatarSaving" @click="onAvatarUnsupported">
+        <button class="login-btn-bar" :disabled="avatarSaving" @click="onAvatarUnsupported">
           登录
         </button>
         <!-- #endif -->
@@ -64,12 +64,17 @@
     <view class="menu-group">
       <MineCell title="我的订单" @click="go('/pages/order/list')">
         <template #icon>
-          <view class="icon-order" />
+          <image class="menu-icon" :src="orderIcon" mode="aspectFit" />
         </template>
       </MineCell>
       <MineCell title="我的收藏" @click="go('/pages/favorite/list')">
         <template #icon>
-          <view class="icon-star" />
+          <image class="menu-icon" :src="userFavoriteIcon" mode="aspectFit" />
+        </template>
+      </MineCell>
+      <MineCell title="购物车" @click="go('/pages/cart/index')">
+        <template #icon>
+          <image class="menu-icon" :src="shoppingCartIcon" mode="aspectFit" />
         </template>
       </MineCell>
     </view>
@@ -77,12 +82,12 @@
     <view class="menu-group">
       <MineCell title="个人资料" @click="go('/pages/profile/edit')">
         <template #icon>
-          <view class="icon-profile" />
+          <image class="menu-icon" :src="userIcon" mode="aspectFit" />
         </template>
       </MineCell>
-      <MineCell title="管理收货地址" @click="go('/pages/address/list')">
+      <MineCell title="地址管理" @click="go('/pages/address/list')">
         <template #icon>
-          <view class="icon-location" />
+          <image class="menu-icon" :src="mapIcon" mode="aspectFit" />
         </template>
       </MineCell>
     </view>
@@ -101,9 +106,13 @@ import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { ensureLogin } from '@/utils/request'
 import { TECH_SUPPORT_TEXT } from '@/config'
-import { getPrivacyNeedAuthorization } from '@/utils/wechatPrivacy'
 import { useWechatAvatar } from '@/composables/useWechatAvatar'
 import MineCell from '@/components/MineCell.vue'
+import userFavoriteIcon from '../../../assets/svg/user-favorite.svg'
+import shoppingCartIcon from '../../../assets/svg/shoppingCart.svg'
+import orderIcon from '../../../assets/svg/order.svg'
+import userIcon from '../../../assets/svg/user.svg'
+import mapIcon from '../../../assets/svg/map.svg'
 
 const userStore = useUserStore()
 
@@ -114,11 +123,10 @@ const {
   onChooseAvatar,
   onAgreePrivacy,
   refreshPrivacyTip,
-  openPrivacyContract,
 } = useWechatAvatar({
   successToast: null,
   resolveSuccessToast: (hadAvatar) => (hadAvatar ? null : '登录成功'),
-  retapAfterPrivacy: '请再次点击登录选择头像',
+  retapAfterPrivacy: '请选择头像完成登录',
 })
 
 const loginBtnText = computed(() =>
@@ -132,21 +140,6 @@ function onAvatarUnsupported() {
 function go(url) {
   if (!ensureLogin()) return
   uni.navigateTo({ url })
-}
-
-/** 若仍待同意隐私协议，先触发官方授权 */
-async function ensurePrivacyReady() {
-  // #ifdef MP-WEIXIN
-  const need = await getPrivacyNeedAuthorization()
-  if (need && typeof wx !== 'undefined' && wx.requirePrivacyAuthorize) {
-    await new Promise((resolve) => {
-      wx.requirePrivacyAuthorize({
-        success: () => resolve(),
-        fail: () => resolve(),
-      })
-    })
-  }
-  // #endif
 }
 
 onShow(async () => {
@@ -163,7 +156,6 @@ onShow(async () => {
     /* ignore */
   }
   await refreshPrivacyTip()
-  await ensurePrivacyReady()
 })
 </script>
 
@@ -171,21 +163,6 @@ onShow(async () => {
 .page {
   min-height: 100vh;
   padding-bottom: 48rpx;
-}
-.privacy-tip {
-  margin: 16rpx 24rpx 0;
-  padding: 20rpx 24rpx;
-  background: #fff8f0;
-  border-radius: 12rpx;
-  font-size: 24rpx;
-  line-height: 1.6;
-  color: #666;
-}
-.privacy-tip-text {
-  color: #666;
-}
-.privacy-link {
-  color: var(--color-primary);
 }
 .user-section {
   background: #fff;
@@ -239,48 +216,33 @@ onShow(async () => {
   display: block;
 }
 .login-wrap {
+  width: 100%;
   display: flex;
   justify-content: center;
 }
-.login-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.login-btn-bar {
+  width: 40%;
+  height: 88rpx;
+  line-height: 88rpx;
   margin: 0;
-  padding: 32rpx 48rpx;
-  background: #fff;
-  border: 2rpx solid var(--color-primary);
-  border-radius: 24rpx;
-}
-.login-btn::after {
+  padding: 0;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 500;
+  border-radius: 44rpx;
   border: none;
 }
-.login-avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  background: #f0f0f0;
-  margin-bottom: 20rpx;
+.login-btn-bar::after {
+  border: none;
 }
-.login-avatar--placeholder {
-  position: relative;
+.login-btn-bar--hover {
+  opacity: 0.88;
 }
-.login-avatar--placeholder::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 48rpx;
-  height: 48rpx;
-  background: #ccc;
-  border-radius: 50%;
-}
-.login-text {
-  font-size: 30rpx;
-  color: var(--color-primary);
-  line-height: 1.4;
+.login-btn-bar[disabled] {
+  opacity: 0.6;
+  color: #fff;
+  background: var(--color-primary);
 }
 .menu-group {
   background: #fff;
@@ -290,54 +252,9 @@ onShow(async () => {
 .menu-group :deep(.mine-cell:not(:last-child)) {
   border-bottom: 1rpx solid #f0f0f0;
 }
-.icon-order {
-  width: 36rpx;
-  height: 44rpx;
-  background: #ffb300;
-  border-radius: 4rpx;
-  position: relative;
-}
-.icon-order::after {
-  content: '';
-  position: absolute;
-  top: 8rpx;
-  left: 8rpx;
-  right: 8rpx;
-  height: 4rpx;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 10rpx 0 rgba(255, 255, 255, 0.8), 0 20rpx 0 rgba(255, 255, 255, 0.8);
-}
-.icon-star {
+.menu-icon {
   width: 40rpx;
   height: 40rpx;
-  background: #e53935;
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-}
-.icon-profile {
-  width: 36rpx;
-  height: 36rpx;
-  background: #26a69a;
-  border-radius: 50%;
-  position: relative;
-}
-.icon-profile::after {
-  content: '';
-  position: absolute;
-  bottom: -8rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 48rpx;
-  height: 24rpx;
-  background: #26a69a;
-  border-radius: 24rpx 24rpx 0 0;
-}
-.icon-location {
-  width: 32rpx;
-  height: 44rpx;
-  background: #2196f3;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  margin-left: 4rpx;
 }
 .footer {
   display: flex;

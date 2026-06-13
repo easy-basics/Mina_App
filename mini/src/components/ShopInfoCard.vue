@@ -10,10 +10,10 @@
         <text class="shop-name">{{ shop.name }}</text>
         <view class="shop-actions">
           <view v-if="shop.address" class="action-btn" @click.stop="openMap">
-            <image class="action-icon" src="/static/icons/map.svg" mode="aspectFit" />
+            <image class="action-icon" :src="mapIcon" mode="aspectFit" />
           </view>
           <view v-if="shop.phone" class="action-btn" @click.stop="callPhone">
-            <image class="action-icon" src="/static/icons/phone.svg" mode="aspectFit" />
+            <image class="action-icon" :src="phoneIcon" mode="aspectFit" />
           </view>
         </view>
       </view>
@@ -26,6 +26,8 @@
 <script setup>
 import { computed } from 'vue'
 import { resolveImageUrl } from '@/utils/media'
+import mapIcon from '../../assets/svg/map.svg'
+import phoneIcon from '../../assets/svg/phone.svg'
 
 const props = defineProps({
   shop: { type: Object, default: null },

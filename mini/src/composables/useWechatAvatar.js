@@ -39,9 +39,11 @@ export function useWechatAvatar(options = {}) {
     onAgreePrivacyAuthorization(e)
     if (e.detail?.errMsg === 'agreePrivacyAuthorization:ok') {
       needPrivacyTip.value = false
-      if (retapAfterPrivacy) {
-        uni.showToast({ title: retapAfterPrivacy, icon: 'none' })
-      }
+      refreshPrivacyTip().then(() => {
+        if (retapAfterPrivacy) {
+          uni.showToast({ title: retapAfterPrivacy, icon: 'none' })
+        }
+      })
     }
   }
 
