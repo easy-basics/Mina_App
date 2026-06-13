@@ -42,11 +42,21 @@ function toRelativeMediaPath(url) {
   return trimmed.startsWith('/') ? trimmed : null;
 }
 
+function isWechatLocalTempUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const t = url.trim().toLowerCase();
+  return (
+    t.startsWith('wxfile://') ||
+    /^https?:\/\/tmp\//i.test(t) ||
+    /^https?:\/\/usr\//i.test(t)
+  );
+}
+
 /** 用户头像入库：/uploads/ 相对路径或微信 CDN 等 https 外链 */
 function toStoredAvatarUrl(url) {
   if (!url) return null;
   const trimmed = url.trim();
-  if (!trimmed) return null;
+  if (!trimmed || isWechatLocalTempUrl(trimmed)) return null;
   const local = toRelativeMediaPath(trimmed);
   if (local) return local;
   if (/^https?:\/\//i.test(trimmed)) return trimmed;

@@ -1,5 +1,16 @@
 import { ASSET_BASE_URL } from '@/config'
 
+/** 微信 chooseAvatar 本地临时路径，不能当网络 URL 加载或入库 */
+export function isWechatLocalTempUrl(url) {
+  if (!url || typeof url !== 'string') return false
+  const t = url.trim().toLowerCase()
+  return (
+    t.startsWith('wxfile://') ||
+    /^https?:\/\/tmp\//i.test(t) ||
+    /^https?:\/\/usr\//i.test(t)
+  )
+}
+
 /**
  * 将接口返回的图片路径转为小程序可加载的绝对 HTTPS 地址
  * 上传图（/uploads/...）统一拼接到 ASSET_BASE_URL，避免接口返回错误域名或 http
@@ -9,7 +20,7 @@ export function resolveImageUrl(url, fallback = '') {
     return fallback
   }
   const trimmed = url.trim()
-  if (!trimmed) return fallback
+  if (!trimmed || isWechatLocalTempUrl(trimmed)) return fallback
 
   if (trimmed.startsWith('/static/')) {
     return trimmed
